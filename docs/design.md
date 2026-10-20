@@ -131,3 +131,15 @@ output = sum_j(exp(m_j - m) * n_j) / sum_j(exp(m_j - m) * z_j)
 随机数按请求种子构造，因此重新排列请求或改变 batch 大小不会改变该请求的 RNG 流。数学／数值层面的 batch invariance 与采样层面的确定性是两个条件；仅设置随机种子无法修复浮点归约路径改变导致的差异。本实现采用逐请求固定路径，未解决高性能 GPU kernel 中的该问题。
 
 `structured` 实验进一步在采样前屏蔽非法下一字符。这里的合法语言只是 `{"ok":true}` 与 `{"ok":false}` 两个完整候选；没有实现通用语法编译器。
+
+## 8. 吸收参考项目的验证、导览和前缀复用
+
+`python -m nano_infer verify` 将优化路径同另一份控制流独立的实现比较。参考实现逐 query、逐 expert 求值，不调用 `TinyModel.forward`、`moe_forward` 或运行时 `softmax`。它共享模型权重和 NumPy，验证对象仅为本文 toy 方程，不能证明官方模型一致性，也不能排除两份实现共有的规格错误。
+
+四组 fixture 覆盖两个模型种子和完整／滑动窗口注意力；另有测试覆盖非零位置和更多窗口。参考路径中的三种故障变体分别允许读取未来 token、丢弃绝对位置和遗漏 MoE。验证要求这些错误引起可检测的差异。输出附有 Python/NumPy 版本、容差、输入及 Python 源文件 SHA-256，方便核对“结果来自哪份代码”。摘要没有签名或安全认证含义。
+
+`python -m nano_infer tour` 在真正的 forward 中记录 shape。以默认 prompt `nano` 为例，prefill score 是 `[4, 4]`，一步 decode 是 `[1, 5]`：查询只有一个新 token，KV 已增长到五个。这使导览与实际执行使用同一条路径。
+
+`python -m nano_infer demo prefix` 演示跨请求复用。先为公共前缀构建一次 KV 与最后一行 logits，再调用 `KVCache.fork()` 为每个后缀复制独立数组。一个分支追加或回滚不会污染另一个分支。生成结果与各请求完整重算逐 token 一致。
+
+对于 R 个请求、P 个公共前缀 token，节省的 token 投影为 `(R - 1) × P`。示例中 R=3、P=29，所以节省 58。这个实现仍会复制 O(Pd) 的 K/V 到每个分支；没有分页、引用计数、自动前缀匹配、驱逐或 copy-on-write，不能把投影节省等同于内存节省。它是独立函数入口，暂未接入调度器的全局缓存管理。

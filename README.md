@@ -1,35 +1,56 @@
 # nano-deepseek-infer
 
-**把 DeepInfer 风格的系统优化，拆成七个可运行、可对照、可追踪的 NumPy 实验。**
+[中文](README.md) | [English](README.en.md)
+
+**把 DeepInfer 风格的系统优化，拆成八个可运行、可对照、可追踪的 NumPy 实验。**
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
-中文教程 · Python + NumPy · 无 GPU · 无权重下载 · 七个可执行实验
+中英 README · Python + NumPy · 无 GPU · 无权重下载 · 八个实验 + shape 导览 + 独立参考验证
 
 > 独立教学项目，非 DeepSeek 官方项目。模型是随机初始化的单层 attention + top-2 MoE，输出没有学习过的语言含义。本项目复现可验证的机制与不变量，不加载 DeepSeek 权重，也不宣称复现其性能。
 
-## 与其他 nano 推理项目有什么不同
+## 能力与资源矩阵
 
 这个项目围绕一个学习目标组织代码：**验证改变缓存、草稿、专家放置和请求调度之后，哪些结果必须保持不变，以及额外工作量出现在哪里。**
 
-CPU 可运行、无权重下载和数值测试在其他项目中也已存在。这里的定位是将 **NumPy 小模型、系统机制对照、状态轨迹和优化反例** 放在同一套短教程中。下面是 2026-10-21 对相关项目 README、依赖及部分实现／测试的核对；这是学习路线对比，没有运行它们做横向性能排名。[固定版本与核对依据](docs/comparison.md)
+CPU、无下载和数值测试并非本项目独有。我们的侧重点是 **用同一个 NumPy 小模型，观察系统状态变化、验证结果等价，同时记录收益与反例**。
 
-| 项目 | 主要学习对象 | 运行路径与已有能力 | 更适合的学习目标 |
-|---|---|---|---|
-| [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | `LLM → Scheduler → ModelRunner → Llama + KVCache` 的小型引擎 | CPU / PyTorch；默认示例加载 SmolLM2-135M；已有分块 prefill、连续批处理和 Transformers 数值对照 | 从真实小模型生成文本，理解引擎职责划分与模型接入 |
-| [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | V4 模型内部的张量与缓存路径 | CPU tiny / PyTorch；SWA、CSA、HCA、mHC、MoE，以及 prefill/decode 等价测试 | 逐算子理解 V4 架构和压缩 KV；这方面比本项目更完整 |
-| [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | V4 架构参考与一致性验证 | CPU / PyTorch + NumPy；无下载 demo、独立参考对照、DSpark 方程与调度验证 | 深入架构方程及 DSpark 验证；其验证范围不能简化为“只实现模型” |
-| [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | 面向实际模型的精简 GPU 推理引擎 | CUDA / PyTorch / FlashAttention；模型权重、prefix caching、tensor parallelism、CUDA Graph | 阅读实际 GPU 执行、缓存块管理和性能优化 |
-| **本项目** | **DeepInfer 风格系统机制的对照实验** | **仅 NumPy；随机单层模型；七个实验共用同一个数值测试载体** | **在 CPU 上逐项检查状态变更、结果等价和工作量代价，再回读 DeepInfer** |
+**符号：✓ 已有实现／明确文档；✗ 明确不支持或不满足该列条件；— 本次未核实；✓\* 有条件支持，见脚注。** 不把“未核实”当“不支持”，也不将每个勾视为优势。对其他项目的判断来自 2026-10-21 的固定版本源码／文档核对，未做横向运行或性能测量。[逐项依据](docs/comparison.md)
 
-### 在这里可以直接观察的差异
+### 运行条件与模型用途
 
-1. **围绕同一个小模型比较执行方式。** 缓存／重算、逐 token／块验证、专家原始放置／复制重排、完整／分片 attention 都有参考路径。模型保持刻意简单，读者可以把注意力放在系统状态上。[实现入口](nano_infer/labs.py)
-2. **把接受、回滚和调度过程作为实验输出。** `--trace` 展示每轮 `proposed`、`accepted`、`rolled_back`、`cache_tokens`，以及每批请求的阶段、输入 token 数和完成状态；不只展示最终文本。[完整示例轨迹](examples/results.json)
-3. **同时展示优化收益和失败情况。** 默认固定草稿预算把目标调用从 `48` 次降到 `26` 次，却把投影 token 从 `61` 增到 `156`；简单自适应预算冷启动后关闭草稿，调用反而变成 `49` 次。它们解释不同成本如何变化，不构成加速比承诺。[控制器与局限](docs/design.md#3-为什么不能只最大化接受率)
-4. **将每个教学机制接回固定版本的上游源码。** 可以从本地测试追到 DeepInfer 的 scheduler、EPLB、MTP 和 YoCo 入口，同时看到哪些生产细节被省略。[源码对应表](docs/upstream-map.md)
+| 项目 | CPU tiny 路径 | 仅 NumPy 运行时 | 默认 demo 不下载权重 | 训练后权重文本生成 |
+|---|:---:|:---:|:---:|:---:|
+| [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | ✓ | ✗ | ✗¹ | ✓ |
+| [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
+| [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
+| [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
+| **本项目** | **✓** | **✓** | **✓** | **✗** |
 
-选择本项目意味着接受明确的取舍：没有训练好的语言能力、完整 V4 架构、真实多卡通信或高性能 batch kernel。需要这些能力时，上表提供了相应的后续学习入口。“更小”和“依赖更少”描述的是本项目的教学取向，不代表对其他项目的性能或正确性优势。
+¹ 默认示例下载 SmolLM2-135M；它另有不下载权重的 tiny 测试。² 指其自训练 native bundle 的文本生成，不表示加载了官方 DSpark checkpoint。
+
+### 机制与验证范围
+
+| 项目 | V4 架构组件 | 独立数值参考 | DSpark 方程验证 | 跨请求前缀复用 | 专家副本放置实验 |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Alexander-Qiu/nano-deepinfer | ✗ | ✓ | — | — | — |
+| singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
+| hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
+| GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
+| **本项目** | **✗** | **✓\*⁵** | **✗** | **✓\*⁶** | **✓\*⁷** |
+
+³ tiny 参考结构，不代表官方权重／生产 kernel 对齐。⁴ CPU 方程与调度向量检查，不代表官方权重推测运行时。⁵ 独立控制流的 toy oracle，共享权重与 NumPy；不是第三方推理后端对照。⁶ 显式公共前缀、分支数组复制；无分页、自动匹配或驱逐。⁷ 单进程物理专家副本模拟，无真实多卡通信。
+
+## 吸收了什么，已经落地什么
+
+| 借鉴来源与优势 | 本项目已实现 | 验证方式与边界 |
+|---|---|---|
+| nano-deepinfer 的 Transformers 对照；hebo 的独立 oracle 与可记录验证结果 | [`verify`](nano_infer/verification.py)：独立逐 token attention/MoE 参考、版本与源码 SHA-256 记录 | 比较完整／分块前向，检出未来信息泄漏、位置丢失、MoE 遗漏三种故障；仅验证 toy 方程 |
+| singzhou 的 shape 注释；hebo 的模型导览 | [`tour`](nano_infer/verification.py)：从实际执行收集 embedding、Q、KV、attention、MoE、logits 的 shape | 并排显示 prefill 与 decode；不是硬编码的架构示意 |
+| nano-vLLM 的跨请求 prefix caching | [`demo prefix`](nano_infer/prefix.py)：公共前缀只算一次，KV 分支独立追加／回滚 | 与各请求完整重算逐 token 对比，并检查分支内存隔离；尚无分页块管理 |
+
+这些实现保留仅 NumPy 的依赖范围。我们还保留草稿接受／回滚轨迹、冷启动控制器反例，以及到 DeepInfer 固定提交的[源码对应表](docs/upstream-map.md)。更完整的 V4 架构、真实 checkpoint 接入和 GPU 性能工程仍可沿比较表中的项目继续学习。
 
 ## 三分钟运行
 
@@ -53,6 +74,8 @@ source .venv/bin/activate
 ```bash
 python -m pip install -e .
 python -m nano_infer demo all
+python -m nano_infer tour
+python -m nano_infer verify
 python -m unittest discover -s tests -v
 ```
 
@@ -64,16 +87,19 @@ python -m unittest discover -s tests -v
 python -m nano_infer demo speculative --trace
 python -m nano_infer demo scheduling --trace
 python -m nano_infer demo all --json lesson-results.json
+python -m nano_infer verify --json verification.json
+python -m nano_infer tour --json shape-tour.json
 python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```
 
 `generate` 的字符 tokenizer 仅支持小写英文字母、数字、空格及少量标点。中文说明不意味着这个随机小模型支持中文生成。安装后也可使用 `nano-infer` 命令。
 
-## 七个实验，七个具体问题
+## 八个实验，八个具体问题
 
 | 实验 | 要回答的问题 | 本地实现与检查 |
 |---|---|---|
 | `cache` | 为什么 decode 不应重新计算整个前缀？ | 真实 Q/K/V 与因果 attention；有／无缓存生成 token 一致 |
+| `prefix` | 不同请求的公共前缀能否只算一次？ | 复用前缀 KV，复制独立分支；与各请求完整重算一致 |
 | `speculative` | 草稿错了怎么恢复？什么时候值得多猜几个？ | 一次块前向验证多个草稿；事务式回滚；固定预算与历史接受率预算对比 |
 | `moe` | 热点专家导致的卡间失衡怎么缓解？ | top-2 路由、真实专家矩阵计算、复制／放置／分发／合并；结果数值一致 |
 | `context` | 分开计算 softmax 的结果可以直接平均吗？ | 分片计算最大值、归一化常数与加权值，再合并；与完整 attention 比较 |
@@ -81,12 +107,13 @@ python -m nano_infer generate --prompt "nano" --max-tokens 24
 | `scheduling` | 长 prompt 和短请求如何共同推进？ | token budget、chunked prefill、请求结束后退出批次、CPU lookahead、独立随机数流 |
 | `structured` | 怎样让生成遵循格式约束？ | 对合法下一字符的 logits 做 mask；实际生成两种 JSON 候选之一 |
 
-每个实验先执行正确性断言，再输出结果。完整记录见 [examples/results.json](examples/results.json)；浮点误差的末位可能随 NumPy／BLAS 版本变化。
+每个实验先执行正确性断言，再输出结果。记录：[实验结果](examples/results.json) · [实际 shape](examples/shape-tour.json) · [独立参考验证](examples/verification.json)。浮点误差的末位可能随 NumPy／BLAS 版本变化。验证记录包含 Python/NumPy 版本、源码摘要、四组输入及故障检出结果；这些摘要用于定位版本，不是签名或官方一致性认证。
 
 这套默认配置的一次运行得到：
 
 - **KV cache**：投影 token 数从 `708` 降到 `41`，输出 token 一致。这是工作量计数，不是墙钟加速倍数。
-- **固定长度草稿**：目标模型调用从 `48` 次降到 `26` 次，但投影 token 数增加。调用更少不代表 CPU 一定更快。
+- **共享前缀**：三个请求共享 `29` 个 token 的前缀，投影 token 数从 `149` 降到 `91`，节省 `58` 次 token 投影；分支复制仍消耗内存和带宽。
+- **固定长度草稿**：目标模型调用从 `48` 次降到 `26` 次，但投影 token 数从 `61` 增到 `156`。调用更少不代表 CPU 一定更快。
 - **冷启动自适应草稿**：早期草稿质量差，预算降为零，目标调用 `49` 次。这一反例说明低质量草稿和不完善的控制器会增加开销。
 - **MoE**：这批数据的两组模拟 rank 路由数从 `[80, 48]` 变为 `[66, 62]`，输出误差小于 `1e-12`。负载改善依赖输入分布。
 - **尾部重放**：窗口 `8`、回滚余量 `3` 时，将这个单层模型的 prompt 重放从 `43` 个 token 缩至 `11` 个。
@@ -115,6 +142,7 @@ flowchart LR
 3. [parallel.py](nano_infer/parallel.py)：逻辑专家与物理副本、分片 softmax 的合并。
 4. [engine.py](nano_infer/engine.py)：等待队列、不可变工作计划、执行、提交输出。
 5. [labs.py](nano_infer/labs.py) 与 [tests/test_core.py](tests/test_core.py)：每项设计能被什么实验推翻。
+6. [verification.py](nano_infer/verification.py)、[prefix.py](nano_infer/prefix.py) 与 [新增测试](tests/test_verification.py)：独立参考、实际 shape 和公共前缀分支。
 
 ## 与 DeepInfer 的对应和边界
 
@@ -133,10 +161,10 @@ flowchart LR
 
 这里的 “batch” 是调度批次，worker 内逐请求执行。EP／CP 的 rank 是单进程模拟。没有 HTTP 服务、分布式 KV cache 服务或多机部署入口。
 
-进一步阅读：[设计推导](docs/design.md) · [动手练习](docs/exercises.md) · [英文简介](docs/english.md)
+进一步阅读：[设计推导](docs/design.md) · [动手练习](docs/exercises.md) · [完整英文 README](README.en.md)
 
 ## 测试与许可
 
-测试覆盖缓存／块计算等价、全接受／全拒绝、生成长度边界、回滚、热点专家副本、上下文分片、SWA 回退边界、批次顺序／大小／流水模式、EOS 和缓存释放。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12。
+20 项测试覆盖缓存／块计算等价、全接受／全拒绝、生成长度边界、回滚、热点专家副本、上下文分片、SWA 回退边界、批次顺序／大小／流水模式、EOS、缓存释放、前缀分支隔离与独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传实验、shape 和验证结果。
 
 本项目原创教学代码使用 [MIT License](LICENSE)。DeepInfer 的上游代码使用 Apache-2.0；此仓库通过链接提供来源，不包含其源码或权重。参见 [来源与致谢](NOTICE.md)。

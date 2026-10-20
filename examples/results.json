@@ -6,6 +6,15 @@
     "cached_score_elements": 1014,
     "uncached_score_elements": 22036
   },
+  "prefix": {
+    "equal_tokens": true,
+    "requests": 3,
+    "prefix_tokens": 29,
+    "baseline_projected_tokens": 149,
+    "reused_projected_tokens": 91,
+    "saved_projected_tokens": 58,
+    "scope": "explicit shared prefix, copied branch caches; no paged/block manager"
+  },
   "speculative": {
     "equal_tokens": true,
     "output": "6:c}e6:c}e6utze6:86utz0ez0e6utze6utz0e6utzezeze6",

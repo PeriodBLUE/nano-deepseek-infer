@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .labs import LABS
 from .model import TinyModel, decode, encode, greedy
+from .verification import shape_tour, verification_report
 
 
 def main():
@@ -13,6 +14,10 @@ def main():
     demo.add_argument("lesson", choices=["all", *LABS], default="all", nargs="?")
     demo.add_argument("--json", type=Path, help="write reproducible lesson results")
     demo.add_argument("--trace", action="store_true", help="print full round/batch traces")
+    for name, help_text in (("tour", "observe actual prefill/decode tensor shapes"),
+                            ("verify", "check an independent toy oracle and emit evidence")):
+        command = sub.add_parser(name, help=help_text)
+        command.add_argument("--json", type=Path, help="write the full result")
     generate = sub.add_parser("generate", help="generate toy text with random weights")
     generate.add_argument("--prompt", default="nano")
     generate.add_argument("--max-tokens", type=int, default=24)
@@ -25,14 +30,19 @@ def main():
         print("Random toy weights; output has no learned language meaning.")
         print(args.prompt + decode(tokens))
         return
-    selected = LABS if args.lesson == "all" else {args.lesson: LABS[args.lesson]}
-    report = {name: run() for name, run in selected.items()}
+    if args.command == "tour":
+        report = shape_tour()
+    elif args.command == "verify":
+        report = verification_report()
+    else:
+        selected = LABS if args.lesson == "all" else {args.lesson: LABS[args.lesson]}
+        report = {name: run() for name, run in selected.items()}
     text = json.dumps(report, indent=2, ensure_ascii=False)
     def compact(value):
         if isinstance(value, dict):
             return {k: compact(v) for k, v in value.items() if k not in ("rounds", "batches")}
         return value
-    print(text if args.trace else json.dumps(compact(report), indent=2, ensure_ascii=False))
+    print(text if getattr(args, "trace", False) else json.dumps(compact(report), indent=2, ensure_ascii=False))
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(text + "\n", encoding="utf-8", newline="\n")

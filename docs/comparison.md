@@ -12,7 +12,23 @@
 | singzhou/nano-deepseek-v4-inference | [`58c5989`](https://github.com/singzhou/nano-deepseek-v4-inference/tree/58c5989369a31069b636c3ba2343349243858cf9) | [依赖](https://github.com/singzhou/nano-deepseek-v4-inference/blob/58c5989369a31069b636c3ba2343349243858cf9/requirements.txt)、[推理与结构测试](https://github.com/singzhou/nano-deepseek-v4-inference/blob/58c5989369a31069b636c3ba2343349243858cf9/tests/test_inference.py) |
 | hebo1221/nano-deepseek-v4 | [`d25710f`](https://github.com/hebo1221/nano-deepseek-v4/tree/d25710f6d35e9344762f8e8af3c7367ba7a5d384) | [依赖](https://github.com/hebo1221/nano-deepseek-v4/blob/d25710f6d35e9344762f8e8af3c7367ba7a5d384/pyproject.toml)、[DSpark 调度实现](https://github.com/hebo1221/nano-deepseek-v4/blob/d25710f6d35e9344762f8e8af3c7367ba7a5d384/nano_deepseek_v4/dspark_scheduler.py)、[DSpark 调度测试](https://github.com/hebo1221/nano-deepseek-v4/blob/d25710f6d35e9344762f8e8af3c7367ba7a5d384/tests/test_dspark_scheduler.py) |
 | GeeeekExplorer/nano-vllm | [`bb823b3`](https://github.com/GeeeekExplorer/nano-vllm/tree/bb823b3e06983d71485a8e1f23715ebd87d98ef8) | [依赖](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/pyproject.toml)、[GPU model runner](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py)、[缓存块管理](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py) |
-| 本项目 | [`1dd1f8f`](https://github.com/PeriodBLUE/nano-deepseek-infer/tree/1dd1f8f3647d85919d3eb6751fb7894b1cb75056) | 本次比较前的实现版本：[实验](https://github.com/PeriodBLUE/nano-deepseek-infer/blob/1dd1f8f3647d85919d3eb6751fb7894b1cb75056/nano_infer/labs.py)、[测试](https://github.com/PeriodBLUE/nano-deepseek-infer/blob/1dd1f8f3647d85919d3eb6751fb7894b1cb75056/tests/test_core.py)、[记录](https://github.com/PeriodBLUE/nano-deepseek-infer/blob/1dd1f8f3647d85919d3eb6751fb7894b1cb75056/examples/results.json) |
+| 本项目 | 与本文件同一提交 | [实验](../nano_infer/labs.py)、[独立参考与导览](../nano_infer/verification.py)、[前缀复用](../nano_infer/prefix.py)、[新增测试](../tests/test_verification.py)、[带源码摘要的验证记录](../examples/verification.json) |
+
+## README 勾叉表的判定口径
+
+中英文 README 使用相同的行、列、符号和脚注。每一列只表达一种含义；资源条件与算法能力拆为两张表。最后一行加粗只是定位本项目，不是综合排名。
+
+- **CPU tiny 路径**：可以在 CPU 执行 tiny 模型。nano-vLLM 的所查 runner 初始化 CUDA，因此该版本不满足该列。
+- **仅 NumPy 运行时**：核心安装和实验只需要 NumPy 与标准库；四个比较对象的依赖中均含 PyTorch，因此记为 ✗，不表示它们依赖设计有问题。
+- **默认 demo 不下载权重**：指 README 默认演示路线。Alexander-Qiu 的示例会下载 SmolLM2，而它的随机模型测试可以离线，二者不混为一谈。
+- **训练后权重文本生成**：包括现有预训练模型或项目自身训练并保存的模型。hebo 的 ✓\* 指 native bundle；本项目没有训练／权重加载路径。
+- **V4 架构组件**：指针对 V4 的混合 attention、压缩 cache、mHC 等组合，不将普通 attention + MoE 计作 V4。本项目明确为 ✗。
+- **独立数值参考**：Alexander-Qiu 有 Transformers 对照，hebo 有独立 oracle；本项目新增独立控制流参考，但仍共享 NumPy 与权重，因此加脚注。仅 self full/cache 对比不足以据此打勾。
+- **DSpark 方程验证**：普通 bigram 推测解码不符合定义，本项目为 ✗。singzhou 将 MTP speculative decoding 列为未实现范围；hebo 有对应的方程／调度向量验证。
+- **跨请求前缀复用**：一个请求内部的增量 KV 不算此项。nano-vLLM 有 prefix caching；本项目新增显式公共前缀复用，以数组复制隔离分支，故为 ✓\*。
+- **专家副本放置实验**：仅有 MoE 路由不足以打勾。本项目有物理副本、放置和分发合并实验；未专门核实的其他项目为 —。
+
+表中 **— 不等于 ✗**。新增的勾来自已提交的实现和测试；没有把待办或未来计划算作支持。
 
 ## 对差异的判断
 
@@ -49,5 +65,8 @@
 | 可观察的中间状态 | [results.json](../examples/results.json)：草稿轮次和调度批次 | 对 GPU stream 或真实通信的追踪 |
 | 保留收益与反例 | 固定草稿调用更少但投影更多；自适应控制器冷启动后关闭草稿 | 墙钟性能排名或普遍最优策略 |
 | 可回读上游的教程 | [upstream-map.md](upstream-map.md)：固定提交、文件、符号和简化边界 | 与上游功能或模型架构完整对应 |
+| 吸收独立参考验证 | [verification.py](../nano_infer/verification.py)：逐 token oracle、四组 fixture、故障变体、源码摘要 | 独立数学规范或第三方推理后端；oracle 仍可能与实现共享规格错误 |
+| 吸收 shape 导览 | [shape-tour.json](../examples/shape-tour.json)：实际 prefill/decode 中间 shape | 完整 V4 多层架构导览 |
+| 吸收跨请求前缀复用 | [prefix.py](../nano_infer/prefix.py)：公共 KV 一次计算、分支复制；[测试](../tests/test_verification.py)检查隔离 | 自动 prefix 匹配、分页共享、copy-on-write 或网络缓存 |
 
 这些是项目目前已有的组合与取舍，不是“首个”“唯一”或“全面领先”的声明。以后扩展功能时，应同步更新这一比较的版本和证据，避免把旧结论当作其他项目的现状。

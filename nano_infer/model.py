@@ -54,6 +54,12 @@ class KVCache:
         self.k = self.k[:length].copy()
         self.v = self.v[:length].copy()
 
+    def fork(self):
+        """Copy a prefix into an independently mutable request cache."""
+        child = KVCache(self.width, self.offset)
+        child.k, child.v = self.k.copy(), self.v.copy()
+        return child
+
 
 class TinyModel:
     def __init__(self, seed=7, width=24, window=None):
@@ -72,7 +78,7 @@ class TinyModel:
     def cache(self, offset=0):
         return KVCache(self.width, offset)
 
-    def forward(self, tokens, cache):
+    def forward(self, tokens, cache, trace=None):
         """Append a chunk and return next-token logits at *each* chunk position.
 
         Q is new-token-only; K/V include the prefix. Causal masking makes a block
@@ -95,13 +101,21 @@ class TinyModel:
             visible &= keys[None, :] > positions[:, None] - self.window
         scores = q @ cache.k.T / self.width**0.5
         scores = np.where(visible, scores, -np.inf)
-        h = x + (softmax(scores) @ cache.v) @ self.wo
-        h = h + moe_forward(h, self.gate, self.experts)[0]
+        attended = (softmax(scores) @ cache.v) @ self.wo
+        h = x + attended
+        routed = moe_forward(h, self.gate, self.experts)[0]
+        logits = (h + routed) @ self.head
+        if trace is not None:
+            for name, tensor in (("embedding", x), ("query", q), ("key_cache", cache.k),
+                                 ("value_cache", cache.v), ("attention_scores", scores),
+                                 ("causal_visibility", visible), ("attention_output", attended),
+                                 ("moe_output", routed), ("logits", logits)):
+                trace.append(dict(stage=name, shape=list(tensor.shape)))
         self.calls += 1
         self.projected_tokens += len(ids)
         # Allocated dense score entries, including entries later masked out.
         self.score_elements += scores.size
-        return h @ self.head
+        return logits
 
 
 def greedy(model, prompt, max_tokens, cached=True):

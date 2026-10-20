@@ -1,0 +1,147 @@
+{
+  "passed": true,
+  "python": "3.11.9",
+  "numpy": "2.4.6",
+  "tolerance": {
+    "atol": 1e-12,
+    "rtol": 1e-12
+  },
+  "cases": [
+    {
+      "seed": 0,
+      "width": 12,
+      "window": null,
+      "tokens": [
+        1,
+        4,
+        2,
+        7,
+        9,
+        3,
+        6,
+        8
+      ],
+      "full_max_error": 4.440892098500626e-16,
+      "cached_max_error": 4.440892098500626e-16,
+      "faults": {
+        "future_attention": {
+          "detected": true,
+          "max_error": 1.2803678099847042
+        },
+        "zero_position": {
+          "detected": true,
+          "max_error": 0.6452806530823822
+        },
+        "drop_moe": {
+          "detected": true,
+          "max_error": 1.059194353628951
+        }
+      }
+    },
+    {
+      "seed": 0,
+      "width": 12,
+      "window": 4,
+      "tokens": [
+        1,
+        4,
+        2,
+        7,
+        9,
+        3,
+        6,
+        8
+      ],
+      "full_max_error": 5.551115123125783e-16,
+      "cached_max_error": 4.718447854656915e-16,
+      "faults": {
+        "future_attention": {
+          "detected": true,
+          "max_error": 1.2803678099847042
+        },
+        "zero_position": {
+          "detected": true,
+          "max_error": 0.6005287707309006
+        },
+        "drop_moe": {
+          "detected": true,
+          "max_error": 1.1221812448966988
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "width": 12,
+      "window": null,
+      "tokens": [
+        1,
+        4,
+        2,
+        7,
+        9,
+        3,
+        6,
+        8
+      ],
+      "full_max_error": 6.661338147750939e-16,
+      "cached_max_error": 8.881784197001252e-16,
+      "faults": {
+        "future_attention": {
+          "detected": true,
+          "max_error": 1.0540363817769913
+        },
+        "zero_position": {
+          "detected": true,
+          "max_error": 0.21199828416264344
+        },
+        "drop_moe": {
+          "detected": true,
+          "max_error": 1.2098388950118686
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "width": 12,
+      "window": 4,
+      "tokens": [
+        1,
+        4,
+        2,
+        7,
+        9,
+        3,
+        6,
+        8
+      ],
+      "full_max_error": 6.800116025829084e-16,
+      "cached_max_error": 8.881784197001252e-16,
+      "faults": {
+        "future_attention": {
+          "detected": true,
+          "max_error": 1.0540363817769913
+        },
+        "zero_position": {
+          "detected": true,
+          "max_error": 0.2949118291615844
+        },
+        "drop_moe": {
+          "detected": true,
+          "max_error": 1.2098388950118686
+        }
+      }
+    }
+  ],
+  "source_sha256": {
+    "__init__.py": "43c24804701485e45a4f36871d2c43f766b279108c021d5d4b8a108c85cffb55",
+    "__main__.py": "2f08e168c1a94cd33b2c17e11878bff95144a7e8d7aff0a06bd4166a7e81b164",
+    "decoding.py": "5263fc47432f3e07d29b8bdb71da3dc1917f2a5b260073f244364ffb98d0b870",
+    "engine.py": "9df722e15d759ad16290b85f4c3faa1931ba84aca29000766a732030c3467589",
+    "labs.py": "deefbcea67257e5df052559f7a86b720d44c8244b94059d52b4fee0aba797217",
+    "model.py": "d37831cf3fdc8b42b09e6e7ad5d84be214e727d08b9457e01464d369c9483ad0",
+    "parallel.py": "d2423343470582677ebef1192b146af4ae7b487e87512baf7b22f94df57709a1",
+    "prefix.py": "cc8c85d56c96fc01cad109ccab8b8988e570f7b04cc3df8a7f5c305bcaed6311",
+    "verification.py": "8d9ef3080207d4eccbfc4fa0ab08c8cb4da12503b084583ee19c892499bc4ffe"
+  },
+  "scope": "toy equations, shared weights, independent control flow; no official model parity"
+}

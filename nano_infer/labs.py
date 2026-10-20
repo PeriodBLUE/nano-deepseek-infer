@@ -7,6 +7,7 @@ from .decoding import ChoiceGrammar, sample, speculative
 from .engine import Engine, Request
 from .model import VOCAB, TinyModel, bounded_replay, decode, encode, greedy, softmax
 from .parallel import moe_forward, rebalance, split_attention
+from .prefix import generate_shared_prefix
 
 
 def cache_lab():
@@ -19,6 +20,22 @@ def cache_lab():
                 uncached_projected_tokens=uncached.projected_tokens,
                 cached_score_elements=cached.score_elements,
                 uncached_score_elements=uncached.score_elements)
+
+
+def prefix_lab():
+    prefix = encode("you are a helpful assistant. ")
+    suffixes = [encode(s) for s in ("hello", "explain cache", "what is moe")]
+    reused, baseline = TinyModel(), TinyModel()
+    output = generate_shared_prefix(reused, prefix, suffixes, 12)
+    reference = [greedy(baseline, prefix + suffix, 12) for suffix in suffixes]
+    assert output == reference
+    saved = baseline.projected_tokens - reused.projected_tokens
+    assert saved == (len(suffixes) - 1) * len(prefix)
+    return dict(equal_tokens=True, requests=len(suffixes), prefix_tokens=len(prefix),
+                baseline_projected_tokens=baseline.projected_tokens,
+                reused_projected_tokens=reused.projected_tokens,
+                saved_projected_tokens=saved,
+                scope="explicit shared prefix, copied branch caches; no paged/block manager")
 
 
 def speculative_lab():
@@ -127,6 +144,6 @@ def structured_lab():
     return dict(output=text, valid_json=True, scope="finite choice grammar only")
 
 
-LABS = dict(cache=cache_lab, speculative=speculative_lab, moe=moe_lab,
+LABS = dict(cache=cache_lab, prefix=prefix_lab, speculative=speculative_lab, moe=moe_lab,
             context=context_lab, replay=replay_lab, scheduling=scheduling_lab,
             structured=structured_lab)
