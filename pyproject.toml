@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nano-deepseek-infer"
+version = "0.1.0"
+description = "CPU-sized, executable lessons on DeepInfer's inference-system design"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24,<3"]
+license = {text = "MIT"}
+readme = "README.md"
+
+[project.scripts]
+nano-infer = "nano_infer.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["nano_infer*"]
