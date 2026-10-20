@@ -1,12 +1,35 @@
 # nano-deepseek-infer
 
-**用一个 CPU 可运行的小型推理引擎，拆解 DeepInfer 的核心系统设计。**
+**把 DeepInfer 风格的系统优化，拆成七个可运行、可对照、可追踪的 NumPy 实验。**
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
 中文教程 · Python + NumPy · 无 GPU · 无权重下载 · 七个可执行实验
 
 > 独立教学项目，非 DeepSeek 官方项目。模型是随机初始化的单层 attention + top-2 MoE，输出没有学习过的语言含义。本项目复现可验证的机制与不变量，不加载 DeepSeek 权重，也不宣称复现其性能。
+
+## 与其他 nano 推理项目有什么不同
+
+这个项目围绕一个学习目标组织代码：**验证改变缓存、草稿、专家放置和请求调度之后，哪些结果必须保持不变，以及额外工作量出现在哪里。**
+
+CPU 可运行、无权重下载和数值测试在其他项目中也已存在。这里的定位是将 **NumPy 小模型、系统机制对照、状态轨迹和优化反例** 放在同一套短教程中。下面是 2026-10-21 对相关项目 README、依赖及部分实现／测试的核对；这是学习路线对比，没有运行它们做横向性能排名。[固定版本与核对依据](docs/comparison.md)
+
+| 项目 | 主要学习对象 | 运行路径与已有能力 | 更适合的学习目标 |
+|---|---|---|---|
+| [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | `LLM → Scheduler → ModelRunner → Llama + KVCache` 的小型引擎 | CPU / PyTorch；默认示例加载 SmolLM2-135M；已有分块 prefill、连续批处理和 Transformers 数值对照 | 从真实小模型生成文本，理解引擎职责划分与模型接入 |
+| [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | V4 模型内部的张量与缓存路径 | CPU tiny / PyTorch；SWA、CSA、HCA、mHC、MoE，以及 prefill/decode 等价测试 | 逐算子理解 V4 架构和压缩 KV；这方面比本项目更完整 |
+| [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | V4 架构参考与一致性验证 | CPU / PyTorch + NumPy；无下载 demo、独立参考对照、DSpark 方程与调度验证 | 深入架构方程及 DSpark 验证；其验证范围不能简化为“只实现模型” |
+| [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | 面向实际模型的精简 GPU 推理引擎 | CUDA / PyTorch / FlashAttention；模型权重、prefix caching、tensor parallelism、CUDA Graph | 阅读实际 GPU 执行、缓存块管理和性能优化 |
+| **本项目** | **DeepInfer 风格系统机制的对照实验** | **仅 NumPy；随机单层模型；七个实验共用同一个数值测试载体** | **在 CPU 上逐项检查状态变更、结果等价和工作量代价，再回读 DeepInfer** |
+
+### 在这里可以直接观察的差异
+
+1. **围绕同一个小模型比较执行方式。** 缓存／重算、逐 token／块验证、专家原始放置／复制重排、完整／分片 attention 都有参考路径。模型保持刻意简单，读者可以把注意力放在系统状态上。[实现入口](nano_infer/labs.py)
+2. **把接受、回滚和调度过程作为实验输出。** `--trace` 展示每轮 `proposed`、`accepted`、`rolled_back`、`cache_tokens`，以及每批请求的阶段、输入 token 数和完成状态；不只展示最终文本。[完整示例轨迹](examples/results.json)
+3. **同时展示优化收益和失败情况。** 默认固定草稿预算把目标调用从 `48` 次降到 `26` 次，却把投影 token 从 `61` 增到 `156`；简单自适应预算冷启动后关闭草稿，调用反而变成 `49` 次。它们解释不同成本如何变化，不构成加速比承诺。[控制器与局限](docs/design.md#3-为什么不能只最大化接受率)
+4. **将每个教学机制接回固定版本的上游源码。** 可以从本地测试追到 DeepInfer 的 scheduler、EPLB、MTP 和 YoCo 入口，同时看到哪些生产细节被省略。[源码对应表](docs/upstream-map.md)
+
+选择本项目意味着接受明确的取舍：没有训练好的语言能力、完整 V4 架构、真实多卡通信或高性能 batch kernel。需要这些能力时，上表提供了相应的后续学习入口。“更小”和“依赖更少”描述的是本项目的教学取向，不代表对其他项目的性能或正确性优势。
 
 ## 三分钟运行
 
