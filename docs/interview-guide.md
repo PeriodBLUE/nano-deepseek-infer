@@ -17,7 +17,7 @@
 | 设备执行 | 矩阵计算、attention kernel、分片通信、低精度与执行重叠 | NumPy 数值实验；EP/CP 在单进程模拟 |
 | 服务 | 接入、限流、跨副本路由、缓存服务、分离部署与监控 | 通过系统设计题练习；本仓库无网络服务 |
 
-下面是理解生产引擎的概念图。图中的草稿验证在本项目中是单独入口，并未接入 `Engine`。
+下面是引擎的数据流。运行 `python infer.py` 可观察调度器如何将草稿验证与 prefill 放入同一执行计划；默认模型和设备执行仍是教学规模。
 
 ```mermaid
 flowchart TD
@@ -30,26 +30,28 @@ flowchart TD
     C --> D{结束?}
     D -->|否| S
     D -->|是| F[输出完成 / 释放状态]
-    B[草稿模型与置信度] -.候选 token.-> O
+    B[草稿模型与置信度] -.候选 token.-> W
 ```
 
 所核对的 [DeepInfer 发布说明](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md) 面向 DeepSeek-V4.1-Flash，提供离线推理与核心引擎能力；完整服务仍需 KV cache 系统、分离部署和跨 DP 副本负载均衡。这不表示引擎内部没有 KV 读写，而是服务系统与模型运行时承担不同职责。
 
 ## 2. 沿着一次请求读实现
 
-运行 `python -m nano_infer demo scheduling --trace`，对照 [engine.py](../nano_infer/engine.py)：
+先运行 `python infer.py --draft-tokens 0` 看普通生成，再用 `python infer.py` 看同一引擎中的草稿验证。对照 [engine.py](../nano_infer/engine.py)：
 
 | 时刻 | 代码入口 | 请求状态怎样变化 |
 |---|---|---|
-| 提交 | `Engine.run` | 为每个请求建立独立 RNG、KV 和 prompt cursor；进入 ready 队列 |
+| 提交 | `add_request` | 为每个请求建立独立 RNG、KV 和 prompt cursor；进入 ready 队列 |
 | 规划 | `_plan` | 在 token budget、最大请求数和 prefill chunk 限制内生成不可变 `Work` |
 | 执行 | `_execute` | 对本轮输入 token 前向，将 K/V 追加到该请求的 cache |
-| 提交 | `_finish` | 更新 prompt cursor；只有完整 prompt 处理完后才采样；追加输出 |
+| 提交 | `_finish` | 更新 prompt cursor；完整 prompt 后采样，或验证草稿并回滚；追加输出 |
 | 继续或退出 | `_finish` | 未完成请求回到队列；达到 EOS 或长度上限后释放 KV |
 
 **手推一个例子。** prompt 为 `nano`，chunk 为 2。第一轮输入 `na`：cursor 从 0 变 2、cache 长度为 2，不生成输出。第二轮输入 `no`：cursor 变 4、cache 长度为 4，从最后一行 logits 采样首个输出 `y0`。第三轮输入 `y0`：cache 长度变 5，产生 `y1`。
 
 这说明“已经输出的 token”和“已经写入 KV 的 token”不总相同。刚采样出的 token 要到下一次前向才有 K/V；最后一个输出若直接结束，就无需再前向。长 prompt 分块后，调度器才有机会在轮次之间服务其他请求。
+
+`infer.py` 在轮次之间调用 `add_request()`，让第二个请求晚到；`run()` 则是所有请求同时提交的便利接口。推测模式下，pending 和所有候选都占用 token budget；输出长度和 EOS 在提交时约束真正保留的历史。EOS 即使在接受的草稿中间，也必须立即截断输出。
 
 **常见追问：批处理等于并行计算吗？** 本项目把多个请求安排进同一计划，worker 内仍逐请求执行。生产引擎还要把请求打包为设备可执行的张量与元数据。上游从 [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) 进入，再跟到 [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp)。
 
@@ -173,7 +175,9 @@ Prefill 往往有更多 token 可并行，decode 的单请求 query 较短，但
 
 完整实验应固定模型版本、硬件、精度、请求到达/长度分布、采样参数与并发，做 warmup、多次测量、报告分位数与内存，并先验证正确性。改 chunk、batch 或草稿预算时，同时观察吞吐和请求延迟。
 
-本项目的 `projected_tokens`、`score_elements` 与 rank 计数可以解释工作量，CPU 事件可以观察调度顺序；它们不能替代 GPU 延迟或多机吞吐测量。实际优化建议应以 profile 验证假设。
+运行 `python bench.py --repeats 5 --json benchmark.json`，比较同一工作负载下四种策略的真实 CPU 耗时与工作量。脚本包含 warmup、轮换测量顺序、原始样本和输出等价检查；报告的 p95 是多次完整运行耗时的样本分位数。
+
+本项目的 `projected_tokens`、`score_elements` 与 rank 计数可以解释工作量，CPU 事件可以观察调度顺序；这些及 CPU 耗时不能替代 GPU 延迟或多机吞吐测量。实际优化建议应以 profile 验证假设。
 
 ## 9. 走向 DeepInfer 与完整模型实现
 
@@ -207,7 +211,7 @@ Prefill 往往有更多 token 可并行，decode 的单请求 query 较短，但
 | □ | 手算一次草稿拒绝 | 写出保留/丢弃的 token、cache 新长度和下轮 pending |
 | □ | 解释一个分布式机制 | 讲清 EP 的副本等价或 CP 的归一化合并，并列出通信成本 |
 | □ | 展示一个反例 | 解释冷启动草稿失败或多层模型不能直接套 SWA 后缀规则 |
-| □ | 做一个自己的扩展 | 完成[探索预算、热点变化或流式到达练习](exercises.md)，保留基线和验证结果 |
+| □ | 做一个自己的扩展 | 完成[探索预算、热点变化或晚到请求延迟练习](exercises.md)，保留基线和验证结果 |
 | □ | 回读一个上游入口 | 从文件/符号追出调用链，明确自己运行验证和源码阅读各覆盖什么 |
 
 这张表可自行标 ✓ 或 ✗。能讲清尚未实现的部分、提出可验证的下一步，也是系统设计能力的一部分。介绍项目时准确区分“运行并分析了”“独立实现了”“阅读过源码”，让每个说法都有证据。

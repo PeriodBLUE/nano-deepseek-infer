@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nano-deepseek-infer"
-version = "0.2.0"
-description = "CPU-sized, executable lessons on DeepInfer's inference-system design"
+version = "0.3.0"
+description = "A readable NumPy inference engine and executable DeepInfer design experiments"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24,<3"]
 license = {text = "MIT"}

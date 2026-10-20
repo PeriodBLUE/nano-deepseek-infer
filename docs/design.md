@@ -117,16 +117,20 @@ output = sum_j(exp(m_j - m) * n_j) / sum_j(exp(m_j - m) * z_j)
 
 ## 7. 调度与采样：请求身份不能随批次变化
 
-`Engine` 中每个请求有独立 prompt cursor、输出、KV cache 和 RNG。每轮受 `token_budget`、`max_batch`、`prefill_chunk` 限制。长 prompt 被分块，短请求可持续 decode，完成后立即退出队列并释放 cache。
+`Engine` 中每个请求有独立 prompt cursor、输出、KV cache 和 RNG；启用推测解码时还拥有独立 draft 和历史预算。每轮受 `token_budget`、`max_batch`、`prefill_chunk` 限制。长 prompt 被分块，短请求可持续 decode，完成后立即退出队列并释放 cache、RNG 与 draft 状态。
+
+`add_request()` / `step()` 是可直接阅读的执行入口；[infer.py](../infer.py) 演示轮次间加入新请求。`max_draft>0` 时，`_plan()` 将 pending 与草稿一起计入 token budget，并为修正/bonus 保留输出长度余量。`_finish()` 通过共享的 `greedy_prefix()` 验证，提交后把 KV 截断到 `旧长度 + 实际输出数`。若 EOS 位于接受前缀内部，只输出到 EOS，并丢弃余下临时 KV。推测请求必须使用 `temperature=0`。
 
 流水模式使用一个 CPU worker。当它执行批次 A 时，主线程为尚未在 A 中的请求准备批次 B。工作计划是不可变的，A 的请求在提交结果前不能再次被调度。这避免读取尚未产生的 token。
 
 此实现的限制：
 
-- 所有请求在 `run()` 开始时提交；演示批次动态缩减及轮转，不包含在线网络请求到达。
+- `run()` 中的请求在开始时提交；动态到达通过同步 `add_request()` / `step()` 演示，没有网络接入或线程安全的并发提交接口。
 - 同一请求不会在前一轮未完成时再次预调度。
 - worker 内逐请求算数，未实现向量化 batch。
 - 没有真实 GPU 调度；线程开销可能让 CPU 版本更慢。
+
+执行异常后，队列和活动状态全部清理，禁止继续使用已经部分变更的 KV；可以用新请求开启一次新的 `run()`。[bench.py](../bench.py)在正确性通过后测量普通缓存、固定/自适应草稿与 CPU 流水策略的真实成本。
 
 随机数按请求种子构造，因此重新排列请求或改变 batch 大小不会改变该请求的 RNG 流。数学／数值层面的 batch invariance 与采样层面的确定性是两个条件；仅设置随机种子无法修复浮点归约路径改变导致的差异。本实现采用逐请求固定路径，未解决高性能 GPU kernel 中的该问题。
 

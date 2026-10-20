@@ -627,6 +627,14 @@
           "phase": "prefill",
           "input_tokens": 2,
           "emitted": 41,
+          "emitted_tokens": [
+            41
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 0,
+          "cache_after": 2,
           "done": false
         },
         {
@@ -634,6 +642,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 0,
+          "cache_after": 3,
           "done": false
         }
       ],
@@ -643,6 +657,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 0,
+          "cache_after": 3,
           "done": false
         },
         {
@@ -650,6 +670,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 0,
+          "cache_after": 3,
           "done": false
         }
       ],
@@ -659,6 +685,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 36,
+          "emitted_tokens": [
+            36
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 2,
+          "cache_after": 3,
           "done": false
         },
         {
@@ -666,6 +700,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 3,
+          "cache_after": 6,
           "done": false
         }
       ],
@@ -675,6 +715,14 @@
           "phase": "prefill",
           "input_tokens": 1,
           "emitted": 28,
+          "emitted_tokens": [
+            28
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 3,
+          "cache_after": 4,
           "done": false
         },
         {
@@ -682,6 +730,14 @@
           "phase": "prefill",
           "input_tokens": 2,
           "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 3,
+          "cache_after": 5,
           "done": false
         }
       ],
@@ -691,6 +747,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 6,
+          "emitted_tokens": [
+            6
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 3,
+          "cache_after": 4,
           "done": false
         },
         {
@@ -698,6 +762,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 6,
+          "cache_after": 9,
           "done": false
         }
       ],
@@ -707,6 +777,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 2,
+          "emitted_tokens": [
+            2
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 4,
+          "cache_after": 5,
           "done": false
         },
         {
@@ -714,6 +792,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 12,
+          "emitted_tokens": [
+            12
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 5,
+          "cache_after": 6,
           "done": false
         }
       ],
@@ -723,6 +809,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 37,
+          "emitted_tokens": [
+            37
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 4,
+          "cache_after": 5,
           "done": false
         },
         {
@@ -730,6 +824,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 9,
+          "cache_after": 12,
           "done": false
         }
       ],
@@ -739,6 +839,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 1,
+          "emitted_tokens": [
+            1
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 5,
+          "cache_after": 6,
           "done": false
         },
         {
@@ -746,6 +854,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 19,
+          "emitted_tokens": [
+            19
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 6,
+          "cache_after": 7,
           "done": false
         }
       ],
@@ -755,6 +871,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 38,
+          "emitted_tokens": [
+            38
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 5,
+          "cache_after": 6,
           "done": false
         },
         {
@@ -762,6 +886,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 12,
+          "cache_after": 15,
           "done": false
         }
       ],
@@ -771,6 +901,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 36,
+          "emitted_tokens": [
+            36
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 6,
+          "cache_after": 7,
           "done": false
         },
         {
@@ -778,6 +916,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 43,
+          "emitted_tokens": [
+            43
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 7,
+          "cache_after": 8,
           "done": true
         }
       ],
@@ -787,6 +933,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 14,
+          "emitted_tokens": [
+            14
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 6,
+          "cache_after": 7,
           "done": false
         },
         {
@@ -794,6 +948,12 @@
           "phase": "prefill",
           "input_tokens": 3,
           "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 15,
+          "cache_after": 18,
           "done": false
         }
       ],
@@ -803,6 +963,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 28,
+          "emitted_tokens": [
+            28
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 7,
+          "cache_after": 8,
           "done": false
         }
       ],
@@ -812,6 +980,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 23,
+          "emitted_tokens": [
+            23
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 7,
+          "cache_after": 8,
           "done": false
         },
         {
@@ -819,6 +995,14 @@
           "phase": "prefill",
           "input_tokens": 1,
           "emitted": 34,
+          "emitted_tokens": [
+            34
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 18,
+          "cache_after": 19,
           "done": false
         }
       ],
@@ -828,6 +1012,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 10,
+          "emitted_tokens": [
+            10
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 8,
+          "cache_after": 9,
           "done": false
         }
       ],
@@ -837,6 +1029,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 26,
+          "emitted_tokens": [
+            26
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 8,
+          "cache_after": 9,
           "done": false
         },
         {
@@ -844,6 +1044,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 19,
+          "cache_after": 20,
           "done": false
         }
       ],
@@ -853,6 +1061,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 34,
+          "emitted_tokens": [
+            34
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 9,
+          "cache_after": 10,
           "done": false
         }
       ],
@@ -862,6 +1078,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 14,
+          "emitted_tokens": [
+            14
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 9,
+          "cache_after": 10,
           "done": true
         },
         {
@@ -869,6 +1093,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 39,
+          "emitted_tokens": [
+            39
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 20,
+          "cache_after": 21,
           "done": false
         }
       ],
@@ -878,6 +1110,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 11,
+          "emitted_tokens": [
+            11
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 10,
+          "cache_after": 11,
           "done": false
         }
       ],
@@ -887,6 +1127,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 31,
+          "emitted_tokens": [
+            31
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 21,
+          "cache_after": 22,
           "done": false
         }
       ],
@@ -896,6 +1144,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 11,
+          "cache_after": 12,
           "done": false
         }
       ],
@@ -905,6 +1161,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 4,
+          "emitted_tokens": [
+            4
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 22,
+          "cache_after": 23,
           "done": true
         }
       ],
@@ -914,6 +1178,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 19,
+          "emitted_tokens": [
+            19
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 12,
+          "cache_after": 13,
           "done": false
         }
       ],
@@ -923,6 +1195,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 42,
+          "emitted_tokens": [
+            42
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 13,
+          "cache_after": 14,
           "done": false
         }
       ],
@@ -932,6 +1212,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 39,
+          "emitted_tokens": [
+            39
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 14,
+          "cache_after": 15,
           "done": false
         }
       ],
@@ -941,6 +1229,14 @@
           "phase": "decode",
           "input_tokens": 1,
           "emitted": 13,
+          "emitted_tokens": [
+            13
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 15,
+          "cache_after": 16,
           "done": true
         }
       ]

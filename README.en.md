@@ -10,31 +10,9 @@ For beginners and aspiring inference engineers · English + Chinese · NumPy onl
 
 Why does generating one token read historical KV? Why can drafting more tokens make decoding slower? Why can expert replication reduce imbalance while changing the router would change the model?
 
-Explore these questions in one small inference system: **inspect tensors and state, compare execution strategies, then follow the corresponding DeepInfer source.** Eight labs cover caching, speculative decoding, expert placement, context sharding, suffix replay, scheduling and constrained sampling. The learning goal is to explain how a request moves through the system and support design decisions with code and experiments.
+Start with [`infer.py`](infer.py): **live arrivals → chunked prefill → scheduled draft verification → KV commit/rollback → output and release.** The whole path uses NumPy and checks outputs against full-prefix recomputation. Explore details through eight focused labs, measure a fixed workload with [`bench.py`](bench.py), then follow the corresponding DeepInfer source.
 
 [Run the project](#run-in-three-minutes) · [System design and interview guide](docs/interview-guide.en.md) · [DeepInfer source map](docs/upstream-map.md) · [Related projects](#capability-and-resource-matrices)
-
-## What you will learn
-
-| Learning advantage | What you can demonstrate | Starting point |
-|---|---|---|
-| **A complete request lifecycle** | Trace admission, chunked prefill, decode, sampling, completion and cache release | [`Engine`](nano_infer/engine.py) · [Request lifecycle](docs/interview-guide.en.md#2-follow-one-request) |
-| **Visible tensors and state** | Read actual prefill/decode shapes, draft acceptance, cache rollback and scheduling traces | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
-| **Testable optimization arguments** | Explain what must remain invariant and detect causal-mask, position and branch-isolation errors | `verify` · [Correctness](docs/interview-guide.en.md#7-prove-that-an-optimization-preserves-results) |
-| **Benefits and costs together** | Explain why fewer calls, higher acceptance or better expert balance alone cannot prove speedup | [Recorded experiments](examples/results.json) · [Performance reasoning](docs/interview-guide.en.md#8-answer-performance-questions) |
-| **A path into production source** | Find scheduling, EPLB, DSpark, YoCo and sampling entry points, and explain the gap from each teaching example | [Source map](docs/upstream-map.md) · [Next steps](docs/interview-guide.en.md#9-continue-into-deepinfer-and-model-architecture) |
-
-## From a first run to a design explanation
-
-You do not need to read the entire repository first. Follow this sequence and produce evidence you can explain at each stage.
-
-| Stage | Run and read | Question to answer independently |
-|---|---|---|
-| 1. Understand a forward pass | `tour`, `demo cache`; `model.py` | Why are scores `4×4` during prefill and `1×5` in the next decode step? What does KV store? |
-| 2. Follow shared and private state | `demo prefix`, `demo scheduling --trace`; `prefix.py`, `engine.py` | How can requests reuse a prefix safely? How is a long prompt chunked? When is cache released? |
-| 3. Explain execution optimizations | `demo speculative --trace`, `demo moe`, `demo context`, `demo replay` | What does each optimization save, add and assume? Why must rejected drafts leave the cache? |
-| 4. Produce verification evidence | `verify`, `demo structured`, tests and [exercises, Chinese](docs/exercises.md) | Which test could falsify your implementation? Which claims still require GPU measurements? |
-| 5. Build a system-design answer | [Interview guide](docs/interview-guide.en.md) → [pinned upstream source](docs/upstream-map.md) | How do the model, engine, kernels and service fit together, and what does each own? |
 
 > Independent educational project, not affiliated with DeepSeek. The model is randomly initialized single-layer attention + top-2 MoE; generated text has no learned language meaning. This project studies mechanisms and invariants, does not load DeepSeek weights, and makes no production performance claims.
 
@@ -59,17 +37,42 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install -e .
-python -m nano_infer demo all
-python -m nano_infer tour
-python -m nano_infer verify
-python -m unittest discover -s tests -v
+python infer.py
 ```
 
 If PowerShell blocks activation, replace `python` with `.\.venv\Scripts\python.exe`; no system execution-policy change is needed.
 
-Inspect traces and save results:
+A default-run excerpt: `r1` arrives after `r0` has started decoding. `input` includes pending and draft tokens; `rollback` counts discarded KV entries.
+
+```text
+step request phase    input draft accept rollback cache     output
+   1 r0      verify       5     4      0        4 4->5      '6'
+  + r1: 'deepseek inference'
+   2 r0      verify       5     4      0        4 5->6      'u'
+   2 r1      prefill      3     0      0        0 0->3      ''
+   3 r0      verify       5     4      4        0 6->11     'uuuuu'
+   3 r1      prefill      3     0      0        0 3->6      ''
+```
+
+Every run checks output equivalence and cache release. Random characters have no learned meaning; the observable result is the state transition.
+
+**Change one parameter and test one hypothesis:**
 
 ```bash
+python infer.py --draft-tokens 0
+python infer.py --draft-tokens 4 --token-budget 3 --prefill-chunk 2
+python infer.py --prompt "nano" --prompt "cache" --arrival-gap 1
+python bench.py --repeats 5 --json benchmark.json
+```
+
+`bench.py` fixes inputs, model seed and output length, comparing cached, fixed-draft, adaptive-draft and pipelined-draft execution. It warms up each policy and rotates measurement order, reporting CPU wall time, throughput and work. JSON includes raw samples, environment and source digests. Timing includes engine execution, excluding model construction and the correctness oracle. **An optimization is allowed to be slower.**
+
+Inspect individual mechanisms and verify:
+
+```bash
+python -m nano_infer tour
+python -m nano_infer verify
+python -m unittest discover -s tests -v
 python -m nano_infer demo speculative --trace
 python -m nano_infer demo scheduling --trace
 python -m nano_infer demo all --json lesson-results.json
@@ -79,6 +82,28 @@ python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```
 
 The toy tokenizer accepts lowercase English letters, digits, spaces and a few punctuation characters. It does not support Chinese generation. After installation, `nano-infer` is also available as a command.
+
+## What you will learn
+
+| Learning advantage | What you can demonstrate | Starting point |
+|---|---|---|
+| **A complete request lifecycle** | Change arrival times and draft budgets; follow prefill, verification, rollback and completion in one scheduler | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
+| **Visible tensors and state** | Read actual prefill/decode shapes, draft acceptance, cache rollback and scheduling traces | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
+| **Testable optimization arguments** | Explain what must remain invariant and detect causal-mask, position and branch-isolation errors | `verify` · [Correctness](docs/interview-guide.en.md#7-prove-that-an-optimization-preserves-results) |
+| **Benefits and costs together** | Compare CPU time, target calls and projection work with identical inputs and outputs | [`bench.py`](bench.py) · [Performance reasoning](docs/interview-guide.en.md#8-answer-performance-questions) |
+| **A path into production source** | Find scheduling, EPLB, DSpark, YoCo and sampling entry points, and explain the gap from each teaching example | [Source map](docs/upstream-map.md) · [Next steps](docs/interview-guide.en.md#9-continue-into-deepinfer-and-model-architecture) |
+
+## From a first run to a design explanation
+
+You do not need to read the entire repository first. Follow this sequence and produce evidence you can explain at each stage.
+
+| Stage | Run and read | Question to answer independently |
+|---|---|---|
+| 1. Understand a forward pass | `tour`, `demo cache`; `model.py` | Why are scores `4×4` during prefill and `1×5` in the next decode step? What does KV store? |
+| 2. Follow request state | `python infer.py`; `engine.py`; then `demo prefix` | How do new requests enter a running engine? How does the token budget constrain drafts? Which state belongs to a request? |
+| 3. Explain execution optimizations | `demo speculative --trace`, `demo moe`, `demo context`, `demo replay` | What does each optimization save, add and assume? Why must rejected drafts leave the cache? |
+| 4. Produce verification evidence | `python bench.py`, `verify`, tests and [exercises, Chinese](docs/exercises.md) | After passing correctness checks, does the optimization actually reduce elapsed time? Which claims still need GPU measurements? |
+| 5. Build a system-design answer | [Interview guide](docs/interview-guide.en.md) → [pinned upstream source](docs/upstream-map.md) | How do the model, engine, kernels and service fit together, and what does each own? |
 
 ## Eight experiments
 
@@ -109,26 +134,27 @@ One run of the default configuration shows:
 ```mermaid
 flowchart LR
     R[Requests and local RNG] --> S[Token budget / chunked prefill]
-    S --> W[CPU worker]
+    S --> P[Work: prefill / decode / verify]
+    D[Request-local bigram draft] --> P
+    P --> W[CPU worker]
     W --> A[Causal attention + KV cache]
     A --> M[Top-2 MoE dispatch / combine]
     M --> L[Logits]
-    L --> O[Sampling / output / cache release]
+    L --> O[Sample or verify / KV rollback / commit]
     O --> S
-    D[Cheap bigram draft] --> V[Block verification / rollback]
-    V --> A
+    O --> F[Release completed state]
 ```
 
-Scheduling and single-request speculative decoding are separate runnable paths sharing `TinyModel`. The [system-design guide](docs/interview-guide.en.md) places both in the larger engine and explains the state dependencies an integrated implementation must preserve.
+`Engine(max_draft=4)` schedules greedy verification within the shared token budget. Each request owns its draft, budget history and KV. `add_request()` / `step()` admit new work between rounds; `run()` provides offline and CPU-pipelined loops. The single-request `speculative()` lesson shares the same `greedy_prefix()` verification rule.
 
 Suggested reading order:
 
-1. [model.py](nano_infer/model.py): KV appends and the shared prefill/decode interface.
-2. [decoding.py](nano_infer/decoding.py): pending tokens, rollback and local sampling.
-3. [parallel.py](nano_infer/parallel.py): logical experts vs physical copies and softmax merging.
-4. [engine.py](nano_infer/engine.py): ready queues, immutable work plans and output commits.
-5. [labs.py](nano_infer/labs.py) and [core tests](tests/test_core.py): executable invariants.
-6. [verification.py](nano_infer/verification.py), [prefix.py](nano_infer/prefix.py) and [verification tests](tests/test_verification.py): independent reference, observed shapes and prefix branches.
+1. [infer.py](infer.py): the complete driving loop, inputs and outputs.
+2. [engine.py](nano_infer/engine.py): admit → plan → execute → commit/rollback → release.
+3. [model.py](nano_infer/model.py) and [decoding.py](nano_infer/decoding.py): numerical forward and draft verification.
+4. [bench.py](bench.py) and [engine tests](tests/test_engine.py): fixed workload, measured time and state boundaries.
+5. [parallel.py](nano_infer/parallel.py), [labs.py](nano_infer/labs.py) and [prefix.py](nano_infer/prefix.py): parallelism and shared-prefix labs.
+6. [verification.py](nano_infer/verification.py): independent reference and observed shapes. [Design decisions and references](docs/nano-design.md) explain the scope.
 
 ## Capability and resource matrices
 
@@ -189,6 +215,6 @@ Further reading: [system design and interview guide](docs/interview-guide.en.md)
 
 ## Tests and license
 
-20 tests cover cached/block equivalence, full acceptance/rejection, length bounds, rollback, expert copies, context shards, SWA boundaries, request order/batch size/pipeline mode, EOS, cache release, prefix isolation and the independent oracle. GitHub Actions runs Windows/Linux × Python 3.10/3.12 and uploads lab, shape and verification results.
+27 tests cover numerical equivalence and engine state, including EOS inside drafts, tiny token budgets, late arrivals, failure cleanup, pipeline equivalence and the independent oracle. GitHub Actions runs Windows/Linux × Python 3.10/3.12 and uploads inference traces, CPU benchmarks, labs, shapes and verification results.
 
 Original code is [MIT licensed](LICENSE). Upstream DeepInfer is Apache-2.0; its code and weights are not vendored here. See [attribution](NOTICE.md).

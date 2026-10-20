@@ -30,8 +30,10 @@ python -m unittest discover -s tests -v
 
 先删掉 `cache.offset`，观察绝对位置错位导致的失败。再增加第二层 attention，试验简单的 W+B 后缀规则为何不足；把每层的信息依赖画出来。不要把增加第二层后的失败“修复”为更宽的数值容差。
 
-## 5. 给调度器增加流式请求到达
+## 5. 给晚到请求增加延迟目标
 
-当前所有请求在 `run()` 时提交。加入 arrival step，验证短请求在长 prompt 执行期间到达后也能被服务。记录等待、首 token、结束等逻辑事件。
+从 `python infer.py --arrival-gap 1` 开始。当前 `add_request()` / `step()` 已允许轮次间提交请求；构造长 prompt 与连续晚到短请求，记录到达、首 token、结束的逻辑 step。比较 FIFO/round-robin 与 decode 优先策略，要求长请求仍能推进。
+
+先用逻辑 step 解释公平性，再加入墙钟时间测量，并明确请求到达发生在哪一侧。用 `bench.py` 的固定工作负载保留基线；不要把逻辑 step 数当作毫秒。
 
 进阶：做真正的向量化 batch。此时要重新检查不同 padding、批次形状和浮点归约是否影响输出；独立 RNG 只是其中一部分。

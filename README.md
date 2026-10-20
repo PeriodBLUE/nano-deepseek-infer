@@ -10,31 +10,9 @@
 
 为什么生成一个 token 要读历史 KV？为什么多猜几个 token 有时反而更慢？为什么复制专家可以缓解负载，却不能随意更改路由结果？
 
-这里把这些问题放进同一个小型推理系统：**看见张量与状态，运行优化前后的对照，再回到 DeepInfer 源码。** 八个实验覆盖缓存、推测解码、专家放置、上下文分片、尾部重放、请求调度与约束采样。学完后，你可以沿着一次请求解释各模块如何协作，并用代码与实验回答“为什么这样设计”。
+从 [`infer.py`](infer.py) 开始：**请求陆续到达 → 分块 prefill → 调度草稿验证 → KV 提交/回滚 → 输出与释放。** 整条路径只依赖 NumPy，输出自动与全前缀重算对照。再用八个专题实验拆解细节，用 [`bench.py`](bench.py) 测量同一工作负载下的收益与成本，最后回到 DeepInfer 源码。
 
 [开始运行](#三分钟运行) · [系统设计与面试导读](docs/interview-guide.md) · [DeepInfer 源码地图](docs/upstream-map.md) · [相关项目对比](#能力与资源矩阵)
-
-## 这个项目能帮你掌握什么
-
-| 学习优势 | 你能具体做到 | 从哪里开始 |
-|---|---|---|
-| **一条完整的请求主线** | 从请求入队讲到分块 prefill、decode、采样、结束与缓存释放，画出状态如何流转 | [`Engine`](nano_infer/engine.py) · [请求生命周期](docs/interview-guide.md#2-沿着一次请求读实现) |
-| **每个概念都能看见** | 对照 prefill / decode 的实际 shape，逐轮检查草稿接受、KV 回滚与批次变化 | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
-| **优化有可检验的理由** | 说明改变执行方式后哪些输出必须不变，定位因果 mask、位置编码、缓存分支的错误 | `verify` · [正确性检查](docs/interview-guide.md#7-如何证明优化没有改变答案) |
-| **性能判断有收益，也有成本** | 解释为什么调用次数、接受率、专家负载均衡都不能单独证明加速 | [实验记录](examples/results.json) · [性能分析](docs/interview-guide.md#8-面试中的性能问题怎么回答) |
-| **能从小模型走回生产源码** | 找到 DeepInfer 的调度、EPLB、DSpark、YoCo 和 sampler 入口，指出教学机制到生产实现还差什么 | [源码地图](docs/upstream-map.md) · [进阶路线](docs/interview-guide.md#9-走向-deepinfer-与完整模型实现) |
-
-## 从第一次运行到能讲清设计
-
-不要求先读完整个仓库。按下面顺序，每一步都产出一份自己可以解释的证据。
-
-| 阶段 | 运行与阅读 | 你应该能独立回答 |
-|---|---|---|
-| 1. 看懂一次前向 | `tour`、`demo cache`；读 `model.py` | 为什么 prefill 的 score 是 `4×4`，下一步 decode 是 `1×5`？KV 保存了什么？ |
-| 2. 看懂状态与共享 | `demo prefix`、`demo scheduling --trace`；读 `prefix.py`、`engine.py` | 公共前缀怎样复用又不串请求？长 prompt 如何分块？何时能释放缓存？ |
-| 3. 讲清执行优化 | `demo speculative --trace`、`demo moe`、`demo context`、`demo replay` | 每项优化省什么、增加什么、依赖什么前提？被拒绝的草稿为何不能留在 KV 中？ |
-| 4. 拿出验证证据 | `verify`、`demo structured`、测试与[动手练习](docs/exercises.md) | 怎样构造一个能使自己实现失败的测试？哪些结论需要 GPU 测量才能成立？ |
-| 5. 组织系统设计回答 | [面试导读](docs/interview-guide.md) → [固定版本上游源码](docs/upstream-map.md) | 如何把模型、引擎、kernel 和服务层连起来，并指出各自负责的问题？ |
 
 > 独立教学项目，非 DeepSeek 官方项目。模型是随机初始化的单层 attention + top-2 MoE，输出没有学习过的语言含义。本项目复现可验证的机制与不变量，不加载 DeepSeek 权重，也不宣称复现其性能。
 
@@ -59,17 +37,42 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install -e .
-python -m nano_infer demo all
-python -m nano_infer tour
-python -m nano_infer verify
-python -m unittest discover -s tests -v
+python infer.py
 ```
 
 如果 PowerShell 禁止激活脚本，可以直接使用 `.\.venv\Scripts\python.exe` 代替 `python`，无需修改系统执行策略。
 
-单独观察草稿接受／回滚和调度轨迹：
+默认运行的一段输出如下；`r1` 在 `r0` 已经开始 decode 后到达。`input` 包括 pending 与草稿，`rollback` 表示本轮丢弃的 KV 条目。
+
+```text
+step request phase    input draft accept rollback cache     output
+   1 r0      verify       5     4      0        4 4->5      '6'
+  + r1: 'deepseek inference'
+   2 r0      verify       5     4      0        4 5->6      'u'
+   2 r1      prefill      3     0      0        0 0->3      ''
+   3 r0      verify       5     4      4        0 6->11     'uuuuu'
+   3 r1      prefill      3     0      0        0 3->6      ''
+```
+
+每次运行结束都检查输出等价与缓存释放。字符没有语言含义，读者要观察的是状态怎样变化。
+
+**改一个参数，验证一个判断：**
 
 ```bash
+python infer.py --draft-tokens 0
+python infer.py --draft-tokens 4 --token-budget 3 --prefill-chunk 2
+python infer.py --prompt "nano" --prompt "cache" --arrival-gap 1
+python bench.py --repeats 5 --json benchmark.json
+```
+
+`bench.py` 固定输入、模型种子和输出长度，比较普通缓存、固定草稿、自适应草稿与流水草稿。每种策略先 warmup，再轮换顺序重复测量；报告 CPU 墙钟耗时、吞吐和工作量，保存原始样本、环境与源码摘要。计时包含引擎执行，不包含模型构造和正确性参考；**没有“优化必须更快”的断言**。
+
+深入观察与验证：
+
+```bash
+python -m nano_infer tour
+python -m nano_infer verify
+python -m unittest discover -s tests -v
 python -m nano_infer demo speculative --trace
 python -m nano_infer demo scheduling --trace
 python -m nano_infer demo all --json lesson-results.json
@@ -79,6 +82,28 @@ python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```
 
 `generate` 的字符 tokenizer 仅支持小写英文字母、数字、空格及少量标点。中文说明不意味着这个随机小模型支持中文生成。安装后也可使用 `nano-infer` 命令。
+
+## 这个项目能帮你掌握什么
+
+| 学习优势 | 你能具体做到 | 从哪里开始 |
+|---|---|---|
+| **一条完整的请求主线** | 改动请求到达时机与草稿预算，观察同一调度器中的 prefill、验证、回滚和结束 | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
+| **每个概念都能看见** | 对照 prefill / decode 的实际 shape，逐轮检查草稿接受、KV 回滚与批次变化 | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
+| **优化有可检验的理由** | 说明改变执行方式后哪些输出必须不变，定位因果 mask、位置编码、缓存分支的错误 | `verify` · [正确性检查](docs/interview-guide.md#7-如何证明优化没有改变答案) |
+| **性能判断有收益，也有成本** | 比较同输入、同输出下的 CPU 耗时、调用次数与投影工作，判断优化何时不划算 | [`bench.py`](bench.py) · [性能分析](docs/interview-guide.md#8-面试中的性能问题怎么回答) |
+| **能从小模型走回生产源码** | 找到 DeepInfer 的调度、EPLB、DSpark、YoCo 和 sampler 入口，指出教学机制到生产实现还差什么 | [源码地图](docs/upstream-map.md) · [进阶路线](docs/interview-guide.md#9-走向-deepinfer-与完整模型实现) |
+
+## 从第一次运行到能讲清设计
+
+不要求先读完整个仓库。按下面顺序，每一步都产出一份自己可以解释的证据。
+
+| 阶段 | 运行与阅读 | 你应该能独立回答 |
+|---|---|---|
+| 1. 看懂一次前向 | `tour`、`demo cache`；读 `model.py` | 为什么 prefill 的 score 是 `4×4`，下一步 decode 是 `1×5`？KV 保存了什么？ |
+| 2. 看懂请求状态 | `python infer.py`；读 `engine.py`；再运行 `demo prefix` | 晚到请求怎样进入正在运行的引擎？token budget 如何约束草稿？哪些状态属于请求？ |
+| 3. 讲清执行优化 | `demo speculative --trace`、`demo moe`、`demo context`、`demo replay` | 每项优化省什么、增加什么、依赖什么前提？被拒绝的草稿为何不能留在 KV 中？ |
+| 4. 拿出验证证据 | `python bench.py`、`verify`、测试与[动手练习](docs/exercises.md) | 正确性通过后，优化是否真的降低了耗时？哪些结论仍需 GPU 测量？ |
+| 5. 组织系统设计回答 | [面试导读](docs/interview-guide.md) → [固定版本上游源码](docs/upstream-map.md) | 如何把模型、引擎、kernel 和服务层连起来，并指出各自负责的问题？ |
 
 ## 八个实验，八个具体问题
 
@@ -109,26 +134,27 @@ python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```mermaid
 flowchart LR
     R[请求与独立 RNG] --> S[token budget / chunked prefill]
-    S --> W[CPU worker]
+    S --> P[Work: prefill / decode / verify]
+    D[请求独立的 bigram draft] --> P
+    P --> W[CPU worker]
     W --> A[causal attention + KV cache]
     A --> M[top-2 MoE dispatch / combine]
     M --> L[logits]
-    L --> O[采样 / 输出 / 释放缓存]
+    L --> O[采样或验证 / KV回滚 / 提交输出]
     O --> S
-    D[廉价 bigram draft] --> V[块验证与 KV 回滚]
-    V --> A
+    O --> F[结束时释放状态]
 ```
 
-调度引擎和单请求推测解码是两个独立教学入口，共用 `TinyModel`；分别运行、分别验证。[系统设计导读](docs/interview-guide.md) 进一步将它们放回生产引擎的整体结构，解释合并实现时需要维护的状态依赖。
+`Engine(max_draft=4)` 将 greedy 草稿验证纳入调度批次，草稿也占用 token budget；每个请求独立保存 draft、历史预算与 KV。`add_request()` / `step()` 允许轮次间提交新请求，`run()` 提供离线与 CPU 流水入口。单请求 `speculative()` 保留为专题实验，与引擎共用 `greedy_prefix()` 验证规则。
 
 建议按以下顺序阅读：
 
-1. [model.py](nano_infer/model.py)：一次前向怎样追加 KV，以及 prefill 和 decode 为什么是同一接口。
-2. [decoding.py](nano_infer/decoding.py)：`pending` token、不接受后缀的回滚、请求独立采样。
-3. [parallel.py](nano_infer/parallel.py)：逻辑专家与物理副本、分片 softmax 的合并。
-4. [engine.py](nano_infer/engine.py)：等待队列、不可变工作计划、执行、提交输出。
-5. [labs.py](nano_infer/labs.py) 与 [tests/test_core.py](tests/test_core.py)：每项设计能被什么实验推翻。
-6. [verification.py](nano_infer/verification.py)、[prefix.py](nano_infer/prefix.py) 与 [验证测试](tests/test_verification.py)：独立参考、实际 shape 和公共前缀分支。
+1. [infer.py](infer.py)：完整驱动循环，输入与输出都在这里。
+2. [engine.py](nano_infer/engine.py)：入队 → 规划 → 执行 → 提交/回滚 → 释放。
+3. [model.py](nano_infer/model.py) 与 [decoding.py](nano_infer/decoding.py)：数值前向和草稿验证。
+4. [bench.py](bench.py) 与 [引擎测试](tests/test_engine.py)：固定工作负载、真实耗时与状态边界。
+5. [parallel.py](nano_infer/parallel.py)、[labs.py](nano_infer/labs.py) 与 [prefix.py](nano_infer/prefix.py)：并行与前缀共享专题。
+6. [verification.py](nano_infer/verification.py)：独立参考和实际 shape。[设计取舍与参考项目](docs/nano-design.md)解释为什么保留这些边界。
 
 ## 能力与资源矩阵
 
@@ -189,6 +215,6 @@ flowchart LR
 
 ## 测试与许可
 
-20 项测试覆盖缓存／块计算等价、全接受／全拒绝、生成长度边界、回滚、热点专家副本、上下文分片、SWA 回退边界、批次顺序／大小／流水模式、EOS、缓存释放、前缀分支隔离与独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传实验、shape 和验证结果。
+27 项测试覆盖数值等价与引擎状态，包括草稿中的 EOS、极小 token budget、晚到请求、执行失败后清理、跨流水模式的输出一致，以及独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传完整推理轨迹、CPU 基准、专题实验、shape 和验证结果。
 
 本项目原创教学代码使用 [MIT License](LICENSE)。DeepInfer 的上游代码使用 Apache-2.0；此仓库通过链接提供来源，不包含其源码或权重。参见 [来源与致谢](NOTICE.md)。

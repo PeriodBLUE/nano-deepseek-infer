@@ -17,7 +17,7 @@ The model specifies the computation; the engine organizes requests, state and ex
 | Device execution | Matrix and attention kernels, communication, precision and overlap | NumPy calculations; single-process EP/CP simulations |
 | Service | Admission, rate limits, replica routing, cache services, disaggregation and monitoring | System-design exercises; no network service here |
 
-This is a conceptual engine diagram. Speculative decoding is a separate local entry point, not integrated into `Engine`.
+This is the engine data flow. Run `python infer.py` to observe draft verification and prefill sharing execution plans. Model and device execution remain at teaching scale.
 
 ```mermaid
 flowchart TD
@@ -30,26 +30,28 @@ flowchart TD
     C --> D{Finished?}
     D -->|No| S
     D -->|Yes| F[Complete / release state]
-    B[Draft model and confidence] -.Candidates.-> O
+    B[Draft model and confidence] -.Candidates.-> W
 ```
 
 The reviewed [DeepInfer release](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md) targets DeepSeek-V4.1-Flash. It provides offline inference and core engine capabilities; a complete service still needs a KV cache system, disaggregation and routing across DP replicas. This distinguishes service infrastructure from the engine's internal KV reads and writes.
 
 ## 2. Follow one request
 
-Run `python -m nano_infer demo scheduling --trace` beside [engine.py](../nano_infer/engine.py).
+Run `python infer.py --draft-tokens 0` for ordinary generation, then `python infer.py` for verification inside the same engine. Read [engine.py](../nano_infer/engine.py).
 
 | Stage | Entry | State transition |
 |---|---|---|
-| Admission | `Engine.run` | Create request-local RNG, cache and prompt cursor; enter the ready queue |
+| Admission | `add_request` | Create request-local RNG, cache and prompt cursor; enter the ready queue |
 | Planning | `_plan` | Produce immutable `Work` within token, request-count and prefill-chunk limits |
 | Execution | `_execute` | Forward the selected tokens and append their K/V |
-| Commit | `_finish` | Advance the prompt cursor; sample only when the entire prompt has been processed |
+| Commit | `_finish` | Advance the cursor; sample after prefill or verify drafts and roll back; append outputs |
 | Continue or stop | `_finish` | Requeue unfinished requests; release cache on EOS or the output limit |
 
 **Work through an example.** For prompt `nano` and chunk size 2, round one consumes `na`: cursor and cache length become 2, with no output. Round two consumes `no`: both become 4, and the last logits row produces `y0`. Round three consumes `y0`: cache length becomes 5, and logits produce `y1`.
 
 An emitted token does not acquire K/V until its next forward pass. The final output needs no further pass when the request ends. Chunking a long prompt creates opportunities to schedule other requests between chunks.
+
+`infer.py` calls `add_request()` between rounds so the second request arrives later. `run()` is a convenience API for simultaneous admission. In speculative mode, pending and all candidates consume the token budget. Output limits and EOS constrain committed history; EOS inside an accepted draft must stop output immediately.
 
 **Does a scheduling batch mean parallel arithmetic?** Here the worker executes each request separately. A production engine must also pack requests into device tensors and metadata. Follow upstream [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) and [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp).
 
@@ -173,7 +175,9 @@ Prefill generally exposes more token parallelism, while per-request decode queri
 
 Fix model revision, hardware, precision, arrival/length distributions, sampling and concurrency. Warm up, repeat measurements, report percentiles and memory, and validate correctness first. Track both latency and throughput when changing chunk, batch or draft budgets.
 
-Local projection, score and rank counters explain work; CPU events show scheduling order. They do not substitute for GPU latency or distributed throughput. Use profiling to test bottleneck hypotheses.
+Run `python bench.py --repeats 5 --json benchmark.json` to compare measured CPU time and work across four policies on one workload. It includes warmup, rotated measurement order, raw samples and output checks. Its p95 is the sample quantile of complete run durations.
+
+Local projection, score and rank counters explain work; CPU events show scheduling order. Neither these nor CPU timings substitute for GPU latency or distributed throughput. Use profiling to test bottleneck hypotheses.
 
 ## 9. Continue into DeepInfer and model architecture
 
@@ -207,7 +211,7 @@ Mark these ✓ or ✗ after checking yourself:
 | □ | Work through draft rejection | Identify retained/discarded tokens, new cache length and next pending |
 | □ | Explain one distributed mechanism | Explain expert-copy equivalence or softmax merging, including communication costs |
 | □ | Present a counterexample | Explain cold-start drafting failure or the multi-layer replay limitation |
-| □ | Make your own extension | Add exploration, changing hotspots or streaming arrivals; retain baseline and verification |
+| □ | Make your own extension | Add exploration, changing hotspots or latency-aware admission policies; retain baseline and verification |
 | □ | Follow one upstream entry | Trace the call chain and distinguish executed evidence from source inspection |
 
 Accurately distinguish what you ran and analyzed, what you independently implemented and what you read. Identifying an unimplemented component and proposing a falsifiable next step is also part of system-design competence.

@@ -21,3 +21,10 @@ written independently. No code from those projects is included. Pinned revisions
 and the precise scope of the comparison are listed in [docs/comparison.md](docs/comparison.md).
 
 DeepSeek and DeepInfer names identify the subject of the lessons. No affiliation or endorsement is implied.
+
+The implementation-design review also consulted [nanoGPT](https://github.com/karpathy/nanoGPT),
+[nanochat](https://github.com/karpathy/nanochat), and
+[modded-nanogpt](https://github.com/KellerJordan/modded-nanogpt), alongside nano-vLLM.
+Pinned revisions, reviewed files and design criteria are recorded in
+[docs/nano-design.md](docs/nano-design.md). The driving script, integrated scheduler
+and benchmark here are independent implementations, not source-code copies.

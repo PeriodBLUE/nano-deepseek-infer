@@ -51,6 +51,23 @@ class ConfidenceBudget:
         self.survived[:accepted] += 1
 
 
+def greedy_prefix(logits, proposals):
+    """Return the verified prefix plus correction/bonus; no cache mutation.
+
+    Row i predicts proposal i, provided every earlier proposal was accepted.
+    Both the single-request lesson and the scheduler use this same rule.
+    """
+    if len(logits) != len(proposals) + 1:
+        raise ValueError("verification needs pending + proposal logits")
+    predicted = np.argmax(logits, axis=-1).tolist()
+    accepted = 0
+    for proposal, target in zip(proposals, predicted):
+        if proposal != target:
+            break
+        accepted += 1
+    return list(proposals[:accepted]) + [predicted[accepted]], accepted
+
+
 def speculative(model, prompt, max_tokens, draft=None, max_draft=5, adaptive=True):
     """Target-equivalent GREEDY decoding with a pending-token cache invariant.
 
@@ -77,13 +94,7 @@ def speculative(model, prompt, max_tokens, draft=None, max_draft=5, adaptive=Tru
         proposals = draft.propose(pending, count)
         before = len(cache)
         logits = model.forward([pending] + proposals, cache)
-        predicted = np.argmax(logits, axis=-1).tolist()
-        accepted = 0
-        for proposal, target in zip(proposals, predicted):
-            if proposal != target:
-                break
-            accepted += 1
-        committed = proposals[:accepted] + [predicted[accepted]]
+        committed, accepted = greedy_prefix(logits, proposals)
         cache.truncate(before + 1 + accepted)
         draft.observe([pending] + committed)
         output.extend(committed)
