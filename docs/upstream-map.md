@@ -4,9 +4,14 @@
 
 这里记录阅读过的文件与对应概念。nano 源码是独立编写的教学实现；“对应”表示解释同一个问题，不表示逐行移植、API 兼容或性能等价。
 
+先沿[请求生命周期与系统设计导读](interview-guide.md)建立整体结构，再按下表追踪代码。阅读一个入口时，记录输入、状态所有者、输出提交时机、正确性要求和成本；这五项也可以作为面试讲述的提纲。[English guide](interview-guide.en.md)
+
 | 上游文件／入口 | 阅读时关注什么 | nano 入口 |
 |---|---|---|
 | [README.md](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md) | 发布范围、硬件限制、哪些服务组件不包含 | README 的边界表 |
+| [v4_modules/builder.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/builder.py)：`V41Builder` | 配置怎样构建主模型 block、预测头、DFlash 头与共享拓扑 | `TinyModel` 之后的架构进阶；本地未实现这些结构 |
+| [decoder_layer.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/decoder_layer.py)：`DeepseekDecoderLayer`、`HCLayerMixin` | attention、MoE、归一化和残差状态的连接 | `TinyModel.forward` 的子层数据流；本地无 HC 结构 |
+| [v4_modules/attn.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/attn.py)：`V4AttentionBase`、`V4Attention` | 投影、RoPE、压缩 KV、稀疏索引、SWA 与共享路径 | `tour` 建立 shape 视角后，继续追踪真实布局 |
 | [llm_engine.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py)：`step`、`_execute_model_async_step`、`post_process` | schedule / execute / process-output 如何拆开 | `engine.Engine` |
 | [scheduler.hpp](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp) | 请求生命周期、调度状态与 token 预算 | `_plan`、`_finish` |
 | [mtp_varlen.hpp](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/mtp_varlen.hpp)：`MTPVarlen::schedule` | 历史 confidence 隔离、吞吐率目标、graph/runtime 成本曲线 | `ConfidenceBudget`，大幅简化 |

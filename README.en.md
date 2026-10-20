@@ -2,55 +2,41 @@
 
 [中文](README.md) | [English](README.en.md)
 
-**Eight executable NumPy experiments for understanding DeepInfer-style inference optimizations.**
+**Understand inference engines on an ordinary computer, then explain DeepInfer's design and tradeoffs through its source code.**
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
-Bilingual READMEs · Python + NumPy · CPU · No weight downloads · Eight labs + shape tour + independent reference
+For beginners and aspiring inference engineers · English + Chinese · NumPy only · No GPU or model weights required
+
+Why does generating one token read historical KV? Why can drafting more tokens make decoding slower? Why can expert replication reduce imbalance while changing the router would change the model?
+
+Explore these questions in one small inference system: **inspect tensors and state, compare execution strategies, then follow the corresponding DeepInfer source.** Eight labs cover caching, speculative decoding, expert placement, context sharding, suffix replay, scheduling and constrained sampling. The learning goal is to explain how a request moves through the system and support design decisions with code and experiments.
+
+[Run the project](#run-in-three-minutes) · [System design and interview guide](docs/interview-guide.en.md) · [DeepInfer source map](docs/upstream-map.md) · [Related projects](#capability-and-resource-matrices)
+
+## What you will learn
+
+| Learning advantage | What you can demonstrate | Starting point |
+|---|---|---|
+| **A complete request lifecycle** | Trace admission, chunked prefill, decode, sampling, completion and cache release | [`Engine`](nano_infer/engine.py) · [Request lifecycle](docs/interview-guide.en.md#2-follow-one-request) |
+| **Visible tensors and state** | Read actual prefill/decode shapes, draft acceptance, cache rollback and scheduling traces | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
+| **Testable optimization arguments** | Explain what must remain invariant and detect causal-mask, position and branch-isolation errors | `verify` · [Correctness](docs/interview-guide.en.md#7-prove-that-an-optimization-preserves-results) |
+| **Benefits and costs together** | Explain why fewer calls, higher acceptance or better expert balance alone cannot prove speedup | [Recorded experiments](examples/results.json) · [Performance reasoning](docs/interview-guide.en.md#8-answer-performance-questions) |
+| **A path into production source** | Find scheduling, EPLB, DSpark, YoCo and sampling entry points, and explain the gap from each teaching example | [Source map](docs/upstream-map.md) · [Next steps](docs/interview-guide.en.md#9-continue-into-deepinfer-and-model-architecture) |
+
+## From a first run to a design explanation
+
+You do not need to read the entire repository first. Follow this sequence and produce evidence you can explain at each stage.
+
+| Stage | Run and read | Question to answer independently |
+|---|---|---|
+| 1. Understand a forward pass | `tour`, `demo cache`; `model.py` | Why are scores `4×4` during prefill and `1×5` in the next decode step? What does KV store? |
+| 2. Follow shared and private state | `demo prefix`, `demo scheduling --trace`; `prefix.py`, `engine.py` | How can requests reuse a prefix safely? How is a long prompt chunked? When is cache released? |
+| 3. Explain execution optimizations | `demo speculative --trace`, `demo moe`, `demo context`, `demo replay` | What does each optimization save, add and assume? Why must rejected drafts leave the cache? |
+| 4. Produce verification evidence | `verify`, `demo structured`, tests and [exercises, Chinese](docs/exercises.md) | Which test could falsify your implementation? Which claims still require GPU measurements? |
+| 5. Build a system-design answer | [Interview guide](docs/interview-guide.en.md) → [pinned upstream source](docs/upstream-map.md) | How do the model, engine, kernels and service fit together, and what does each own? |
 
 > Independent educational project, not affiliated with DeepSeek. The model is randomly initialized single-layer attention + top-2 MoE; generated text has no learned language meaning. This project studies mechanisms and invariants, does not load DeepSeek weights, and makes no production performance claims.
-
-## Capability and resource matrices
-
-The organizing question is: **when caching, drafting, expert placement or scheduling changes, which results must remain invariant, and where does the extra work go?**
-
-CPU execution, no-download examples and numerical tests already exist in related projects. Our focus is their combination with **one small NumPy model, observable system state, reference comparisons and optimization counterexamples**.
-
-**Legend: ✓ implementation or explicit documentation; ✗ explicitly unsupported or does not meet the column's definition; — not verified in this review; ✓\* conditional, see notes.** Unknown is not unsupported, and a check is not automatically an advantage. Other projects were reviewed at pinned revisions on 2026-10-21; we did not run a cross-project benchmark. [Evidence and revisions](docs/comparison.md)
-
-### Execution requirements and model use
-
-| Project | CPU tiny path | NumPy-only runtime | Default demo needs no weights download | Text generation with trained weights |
-|---|:---:|:---:|:---:|:---:|
-| [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | ✓ | ✗ | ✗¹ | ✓ |
-| [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
-| [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
-| [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
-| **This project** | **✓** | **✓** | **✓** | **✗** |
-
-¹ The default example downloads SmolLM2-135M; separate tiny tests do not need weights. ² Its locally trained native bundle supports generation; this does not imply an official DSpark checkpoint runtime.
-
-### Mechanisms and verification scope
-
-| Project | V4 architecture components | Independent numerical reference | DSpark equation checks | Cross-request prefix reuse | Expert replica placement lab |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Alexander-Qiu/nano-deepinfer | ✗ | ✓ | — | — | — |
-| singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
-| hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
-| GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
-| **This project** | **✗** | **✓\*⁵** | **✗** | **✓\*⁶** | **✓\*⁷** |
-
-³ Tiny reference architectures, not official-weight or production-kernel parity. ⁴ CPU equation/scheduler vectors, not official-weight speculative serving. ⁵ Independent control flow for the toy equations, sharing weights and NumPy; not a separate inference backend. ⁶ Explicit shared prefix with copied branch arrays; no paging, automatic matching or eviction. ⁷ Single-process physical-expert simulation without real device communication.
-
-## What we learned and implemented
-
-| Inspiration | Implemented here | Verification and limit |
-|---|---|---|
-| nano-deepinfer's Transformers comparisons; hebo's independent oracles and recorded verification | [`verify`](nano_infer/verification.py): token-wise attention/MoE reference, runtime versions and source SHA-256 digests | Full/cached agreement; deliberate future leakage, missing positions and missing MoE are detected. Toy equations only |
-| singzhou's tensor-shape annotations; hebo's model tour | [`tour`](nano_infer/verification.py): observed embedding, Q, KV, attention, MoE and logits shapes | Collected during actual prefill/decode execution, not a hard-coded diagram |
-| nano-vLLM's cross-request prefix caching | [`demo prefix`](nano_infer/prefix.py): compute a shared prefix once, fork independently mutable KV branches | Compare with full per-request recomputation; test branch isolation. No paged block manager |
-
-These additions retain a NumPy-only runtime. We also expose draft acceptance/rollback traces, a cold-start budgeting counterexample and a [pinned DeepInfer source map](docs/upstream-map.md). The related projects remain useful next steps for full V4 architecture, real checkpoint integration and GPU engineering.
 
 ## Run in three minutes
 
@@ -133,7 +119,7 @@ flowchart LR
     V --> A
 ```
 
-Scheduling and single-request speculative decoding are separate learning paths sharing `TinyModel`. This keeps each state machine independently inspectable.
+Scheduling and single-request speculative decoding are separate runnable paths sharing `TinyModel`. The [system-design guide](docs/interview-guide.en.md) places both in the larger engine and explains the state dependencies an integrated implementation must preserve.
 
 Suggested reading order:
 
@@ -142,7 +128,45 @@ Suggested reading order:
 3. [parallel.py](nano_infer/parallel.py): logical experts vs physical copies and softmax merging.
 4. [engine.py](nano_infer/engine.py): ready queues, immutable work plans and output commits.
 5. [labs.py](nano_infer/labs.py) and [core tests](tests/test_core.py): executable invariants.
-6. [verification.py](nano_infer/verification.py), [prefix.py](nano_infer/prefix.py) and [added tests](tests/test_verification.py): independent reference, observed shapes and prefix branches.
+6. [verification.py](nano_infer/verification.py), [prefix.py](nano_infer/prefix.py) and [verification tests](tests/test_verification.py): independent reference, observed shapes and prefix branches.
+
+## Capability and resource matrices
+
+Choose a project according to the layer you want to understand. This project's focus is **one NumPy model connecting mechanisms, state, correctness and cost**: start with arrays and execution traces, then move into production source.
+
+| Your next learning goal | Useful starting point |
+|---|---|
+| **Inference mechanisms and state; experimental evidence for design answers** | **This project: eight runnable labs, round-level traces, an independent reference and upstream source map** |
+| Real small-model integration and Transformers comparisons | [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) |
+| V4 architecture, hybrid attention and compressed KV | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) |
+| V4 equations, independent references and DSpark scheduler checks | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) |
+| GPU execution, paged caching and CUDA Graph | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) |
+
+**Legend: ✓ implementation or explicit documentation; ✗ explicitly unsupported or does not meet the column's definition; — not verified in this review; ✓\* conditional, see notes.** Unknown is not unsupported, and a check is not automatically an advantage. Other projects were reviewed at pinned revisions on 2026-10-21; we did not run a cross-project benchmark. [Evidence and revisions](docs/comparison.md)
+
+### Execution requirements and model use
+
+| Project | CPU tiny path | NumPy-only runtime | Default demo needs no weights download | Text generation with trained weights |
+|---|:---:|:---:|:---:|:---:|
+| [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | ✓ | ✗ | ✗¹ | ✓ |
+| [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
+| [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
+| [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
+| **This project** | **✓** | **✓** | **✓** | **✗** |
+
+¹ The default example downloads SmolLM2-135M; separate tiny tests do not need weights. ² Its locally trained native bundle supports generation; this does not imply an official DSpark checkpoint runtime.
+
+### Mechanisms and verification scope
+
+| Project | V4 architecture components | Independent numerical reference | DSpark equation checks | Cross-request prefix reuse | Expert replica placement lab |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Alexander-Qiu/nano-deepinfer | ✗ | ✓ | — | — | — |
+| singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
+| hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
+| GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
+| **This project** | **✗** | **✓\*⁵** | **✗** | **✓\*⁶** | **✓\*⁷** |
+
+³ Tiny reference architectures, not official-weight or production-kernel parity. ⁴ CPU equation/scheduler vectors, not official-weight speculative serving. ⁵ Independent control flow for the toy equations, sharing weights and NumPy; not a separate inference backend. ⁶ Explicit shared prefix with copied branch arrays; no paging, automatic matching or eviction. ⁷ Single-process physical-expert simulation without real device communication.
 
 ## DeepInfer mapping and limits
 
@@ -161,7 +185,7 @@ Source review is pinned to DeepInfer [`774ce244b87cc0eb8d4b94ab9f5de2ab22049f01`
 
 “Batch” means a scheduling batch; the worker executes requests individually. EP/CP ranks are simulated in one process. There is no HTTP service, distributed KV service or multi-node deployment.
 
-Further reading: [design derivation, Chinese](docs/design.md) · [exercises, Chinese](docs/exercises.md) · [comparison evidence, Chinese](docs/comparison.md)
+Further reading: [system design and interview guide](docs/interview-guide.en.md) · [design derivation, Chinese](docs/design.md) · [exercises, Chinese](docs/exercises.md) · [comparison evidence, Chinese](docs/comparison.md)
 
 ## Tests and license
 

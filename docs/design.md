@@ -132,7 +132,7 @@ output = sum_j(exp(m_j - m) * n_j) / sum_j(exp(m_j - m) * z_j)
 
 `structured` 实验进一步在采样前屏蔽非法下一字符。这里的合法语言只是 `{"ok":true}` 与 `{"ok":false}` 两个完整候选；没有实现通用语法编译器。
 
-## 8. 吸收参考项目的验证、导览和前缀复用
+## 8. 独立参考、张量导览与前缀复用
 
 `python -m nano_infer verify` 将优化路径同另一份控制流独立的实现比较。参考实现逐 query、逐 expert 求值，不调用 `TinyModel.forward`、`moe_forward` 或运行时 `softmax`。它共享模型权重和 NumPy，验证对象仅为本文 toy 方程，不能证明官方模型一致性，也不能排除两份实现共有的规格错误。
 
