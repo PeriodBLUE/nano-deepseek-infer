@@ -1,10 +1,10 @@
-# nano-deepseek-infer
+# nano-deepseek-inference：从零理解 DeepSeek 推理与 AI Infra
 
 **[English](README.md)** | [简体中文](README.zh-CN.md)
 
-**用一台普通电脑，从零跑通推理引擎的关键机制，沿源码讲清 DeepInfer 的设计与取舍。**
+**在 CPU 上构建并运行 NumPy 大模型推理引擎，学习 AI Infra：DeepInfer 设计、KV cache、MLA、MoE、推测解码、连续批处理与 HTTP 服务。**
 
-[![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
+[![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-inference/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-inference/actions/workflows/test.yml)
 
 面向初学者与推理工程求职者 · 中英双语 · 仅 NumPy · CPU 训练与文本生成
 
@@ -20,8 +20,8 @@
 Python 3.10+。Windows、Linux、macOS 均可使用，运行时依赖只有 NumPy。
 
 ```bash
-git clone https://github.com/PeriodBLUE/nano-deepseek-infer.git
-cd nano-deepseek-infer
+git clone https://github.com/PeriodBLUE/nano-deepseek-inference.git
+cd nano-deepseek-inference
 python -m venv .venv
 ```
 

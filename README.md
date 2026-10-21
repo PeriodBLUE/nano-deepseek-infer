@@ -1,10 +1,10 @@
-# nano-deepseek-infer
+# nano-deepseek-inference: DeepSeek Inference from Scratch
 
 **[English](README.md)** | [简体中文](README.zh-CN.md)
 
-**Understand inference engines on an ordinary computer, then explain DeepInfer's design and tradeoffs through its source code.**
+**Learn AI Infra by building and running a NumPy LLM inference engine on CPU: DeepInfer design, KV cache, MLA, MoE, speculative decoding, continuous batching, and HTTP serving.**
 
-[![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
+[![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-inference/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-inference/actions/workflows/test.yml)
 
 For beginners and aspiring inference engineers · English + Chinese · NumPy only · CPU training and generation
 
@@ -20,8 +20,8 @@ Start with [`infer.py`](infer.py): **live arrivals → chunked prefill → sched
 Requires Python 3.10+. Works on Windows, Linux and macOS; NumPy is the only runtime dependency.
 
 ```bash
-git clone https://github.com/PeriodBLUE/nano-deepseek-infer.git
-cd nano-deepseek-infer
+git clone https://github.com/PeriodBLUE/nano-deepseek-inference.git
+cd nano-deepseek-inference
 python -m venv .venv
 ```
 

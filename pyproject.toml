@@ -3,13 +3,18 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nano-deepseek-infer"
+name = "nano-deepseek-inference"
 version = "0.5.0"
-description = "A readable NumPy inference engine and executable DeepInfer design experiments"
+description = "Learn AI Infra and DeepSeek inference from scratch: a NumPy LLM engine with KV cache, MLA, MoE and serving"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24,<3"]
 license = {text = "MIT"}
 readme = "README.md"
+
+[project.urls]
+Repository = "https://github.com/PeriodBLUE/nano-deepseek-inference"
+Documentation = "https://github.com/PeriodBLUE/nano-deepseek-inference#readme"
+Issues = "https://github.com/PeriodBLUE/nano-deepseek-inference/issues"
 
 [project.scripts]
 nano-infer = "nano_infer.__main__:main"

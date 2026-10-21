@@ -1,4 +1,4 @@
-# nano-deepseek-infer
+# nano-deepseek-inference
 
 The English homepage is now [README.md](README.md).
 
