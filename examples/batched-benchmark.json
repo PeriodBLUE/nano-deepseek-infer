@@ -1,0 +1,364 @@
+{
+  "environment": {
+    "python": "3.11.9",
+    "numpy": "2.4.6",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel",
+    "cpu_count": 14,
+    "numpy_build": "{\n  \"Compilers\": {\n    \"c\": {\n      \"name\": \"msvc\",\n      \"linker\": \"link\",\n      \"version\": \"19.44.35226\",\n      \"commands\": \"cl\"\n    },\n    \"cython\": {\n      \"name\": \"cython\",\n      \"linker\": \"cython\",\n      \"version\": \"3.2.4\",\n      \"commands\": \"cython\"\n    },\n    \"c++\": {\n      \"name\": \"msvc\",\n      \"linker\": \"link\",\n      \"version\": \"19.44.35226\",\n      \"commands\": \"cl\"\n    }\n  },\n  \"Machine Information\": {\n    \"host\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"windows\"\n    },\n    \"build\": {\n      \"cpu\": \"x86_64\",\n      \"family\": \"x86_64\",\n      \"endian\": \"little\",\n      \"system\": \"windows\"\n    }\n  },\n  \"Build Dependencies\": {\n    \"blas\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.31.188.0\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"C:/Users/runneradmin/AppData/Local/Temp/cibw-run-6ukx7exl/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/include\",\n      \"lib directory\": \"C:/Users/runneradmin/AppData/Local/Temp/cibw-run-6ukx7exl/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY SkylakeX MAX_THREADS=24\",\n      \"pc file directory\": \"D:/a/numpy-release/numpy-release/.openblas\"\n    },\n    \"lapack\": {\n      \"name\": \"scipy-openblas\",\n      \"found\": true,\n      \"version\": \"0.3.31.188.0\",\n      \"detection method\": \"pkgconfig\",\n      \"include directory\": \"C:/Users/runneradmin/AppData/Local/Temp/cibw-run-6ukx7exl/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/include\",\n      \"lib directory\": \"C:/Users/runneradmin/AppData/Local/Temp/cibw-run-6ukx7exl/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/lib\",\n      \"openblas configuration\": \"OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY SkylakeX MAX_THREADS=24\",\n      \"pc file directory\": \"D:/a/numpy-release/numpy-release/.openblas\"\n    }\n  },\n  \"Python Information\": {\n    \"path\": \"C:\\\\Users\\\\runneradmin\\\\AppData\\\\Local\\\\Temp\\\\build-env-jxn7bo0g\\\\Scripts\\\\python.exe\",\n    \"version\": \"3.11\"\n  },\n  \"SIMD Extensions\": {\n    \"baseline\": [\n      \"X86_V2\"\n    ],\n    \"found\": [\n      \"X86_V3\"\n    ]\n  }\n}\n",
+    "thread_env": {
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null,
+      "MKL_NUM_THREADS": null
+    }
+  },
+  "workload": {
+    "seed": 7,
+    "prompts": [
+      [
+        20,
+        8,
+        5,
+        0,
+        13,
+        15,
+        4,
+        5,
+        12,
+        0
+      ],
+      [
+        20,
+        8,
+        5,
+        0,
+        3,
+        1,
+        3,
+        8,
+        5,
+        0
+      ],
+      [
+        20,
+        8,
+        5,
+        0,
+        4,
+        18,
+        1,
+        6,
+        20,
+        0
+      ],
+      [
+        20,
+        8,
+        5,
+        0,
+        19,
+        3,
+        8,
+        5,
+        4,
+        21,
+        12,
+        5,
+        18,
+        0
+      ]
+    ],
+    "max_tokens": 24,
+    "batched": true,
+    "paged": true,
+    "checkpoint_sha256": "4b17a0e1440b33c655f12381395c8cdb8192760b56f53faaa5fad6e99d532259",
+    "output_tokens": 96,
+    "token_budget": 12,
+    "max_batch": 3,
+    "prefill_chunk": 4,
+    "repeats": 3,
+    "warmups_per_policy": 1
+  },
+  "source_sha256": {
+    "bench.py": "801bc2c42a89c107acd919505a729c7d531238947540a43984e2aa99cc7677ce",
+    "nano_infer/__init__.py": "43c24804701485e45a4f36871d2c43f766b279108c021d5d4b8a108c85cffb55",
+    "nano_infer/__main__.py": "4bf21b8105f9e9f0d49f2a251abf6e96be2d489e95cfde1bef64a5d9be1edcc9",
+    "nano_infer/decoding.py": "6ff5eca12f58581072dcd26d9e4aa5b8c90a3d4961f6a419b181d7f90d627d2e",
+    "nano_infer/dspark.py": "12e66384ce2b6340e280b4f84a96580c7c4c74172ddf5608deeabb967c27bc1b",
+    "nano_infer/dspark_reference.py": "d5f5e1c9a9bf5044860f803afad8f1d58bc5c1a3138a76fad85064b71787fb79",
+    "nano_infer/engine.py": "98b98f3e1663331a26e666468a37f55ced694f1898b3482d42a0189cf5aa1ab3",
+    "nano_infer/labs.py": "deefbcea67257e5df052559f7a86b720d44c8244b94059d52b4fee0aba797217",
+    "nano_infer/mla.py": "c7b99db139e066d1ed227c4106d9533784b7958dc98212cf69fbcd2a904d5f93",
+    "nano_infer/model.py": "1c0aec0ba4afa8955d7bc4cb78379f7195d5d231355711b27e0da270e8d66e6e",
+    "nano_infer/paging.py": "05694d5551be0b163f3afb86f9c33dbd714c7feb0518637ffe23be75260db3ee",
+    "nano_infer/parallel.py": "d2423343470582677ebef1192b146af4ae7b487e87512baf7b22f94df57709a1",
+    "nano_infer/prefix.py": "cc8c85d56c96fc01cad109ccab8b8988e570f7b04cc3df8a7f5c305bcaed6311",
+    "nano_infer/service.py": "b319a36a4762761940d269fa20d65f7e401f8d40a18a213a9c5378c3b90041fc",
+    "nano_infer/training.py": "0116a0f552a22c9fff5855ce51cf35ad82102b7a8de470a2dc317e890797d357",
+    "nano_infer/verification.py": "8d9ef3080207d4eccbfc4fa0ab08c8cb4da12503b084583ee19c892499bc4ffe"
+  },
+  "oracle_outputs": {
+    "r0": [
+      12,
+      5,
+      1,
+      18,
+      14,
+      19,
+      0,
+      6,
+      18,
+      15,
+      13,
+      0,
+      20,
+      5,
+      24,
+      20,
+      37,
+      0,
+      20,
+      18,
+      1,
+      9,
+      14,
+      9
+    ],
+    "r1": [
+      19,
+      1,
+      18,
+      5,
+      16,
+      20,
+      5,
+      0,
+      1,
+      13,
+      5,
+      24,
+      5,
+      23,
+      15,
+      18,
+      0,
+      20,
+      19,
+      37,
+      0,
+      20,
+      8,
+      5
+    ],
+    "r2": [
+      1,
+      14,
+      4,
+      0,
+      1,
+      3,
+      5,
+      19,
+      0,
+      20,
+      9,
+      22,
+      5,
+      16,
+      5,
+      23,
+      1,
+      12,
+      5,
+      18,
+      0,
+      5,
+      19,
+      0
+    ],
+    "r3": [
+      12,
+      5,
+      1,
+      22,
+      5,
+      19,
+      0,
+      18,
+      15,
+      15,
+      13,
+      0,
+      6,
+      15,
+      18,
+      0,
+      1,
+      3,
+      20,
+      9,
+      22,
+      5,
+      0,
+      4
+    ]
+  },
+  "results": {
+    "cached": {
+      "policy": {
+        "max_draft": 0
+      },
+      "median_seconds": 0.008122000013827346,
+      "p95_seconds": 0.008317209994129372,
+      "output_tokens_per_second": 11819.748810214754,
+      "samples": [
+        {
+          "seconds": 0.007061500000418164,
+          "calls": 36,
+          "projected_tokens": 144,
+          "score_elements": 2692,
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0
+        },
+        {
+          "seconds": 0.008338899991940707,
+          "calls": 36,
+          "projected_tokens": 144,
+          "score_elements": 2692,
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0
+        },
+        {
+          "seconds": 0.008122000013827346,
+          "calls": 36,
+          "projected_tokens": 144,
+          "score_elements": 2692,
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0
+        }
+      ],
+      "equal_full_recompute": true
+    },
+    "fixed_draft": {
+      "policy": {
+        "max_draft": 4
+      },
+      "median_seconds": 0.011119100003270432,
+      "p95_seconds": 0.01202711000223644,
+      "output_tokens_per_second": 8633.792300794468,
+      "samples": [
+        {
+          "seconds": 0.010881900001550093,
+          "calls": 33,
+          "projected_tokens": 452,
+          "score_elements": 11268,
+          "proposed": 238,
+          "accepted": 7,
+          "rolled_back": 231
+        },
+        {
+          "seconds": 0.011119100003270432,
+          "calls": 33,
+          "projected_tokens": 452,
+          "score_elements": 11268,
+          "proposed": 238,
+          "accepted": 7,
+          "rolled_back": 231
+        },
+        {
+          "seconds": 0.012128000002121553,
+          "calls": 33,
+          "projected_tokens": 452,
+          "score_elements": 11268,
+          "proposed": 238,
+          "accepted": 7,
+          "rolled_back": 231
+        }
+      ],
+      "equal_full_recompute": true
+    },
+    "adaptive_draft": {
+      "policy": {
+        "max_draft": 4,
+        "adaptive": true
+      },
+      "median_seconds": 0.009346099992399104,
+      "p95_seconds": 0.009566509994328953,
+      "output_tokens_per_second": 10271.664124937017,
+      "samples": [
+        {
+          "seconds": 0.009590999994543381,
+          "calls": 35,
+          "projected_tokens": 200,
+          "score_elements": 3836,
+          "proposed": 33,
+          "accepted": 1,
+          "rolled_back": 32
+        },
+        {
+          "seconds": 0.009289000008720905,
+          "calls": 35,
+          "projected_tokens": 200,
+          "score_elements": 3836,
+          "proposed": 33,
+          "accepted": 1,
+          "rolled_back": 32
+        },
+        {
+          "seconds": 0.009346099992399104,
+          "calls": 35,
+          "projected_tokens": 200,
+          "score_elements": 3836,
+          "proposed": 33,
+          "accepted": 1,
+          "rolled_back": 32
+        }
+      ],
+      "equal_full_recompute": true
+    },
+    "pipelined_draft": {
+      "policy": {
+        "max_draft": 4,
+        "pipelined": true
+      },
+      "median_seconds": 0.018009899999015033,
+      "p95_seconds": 0.018359099999361205,
+      "output_tokens_per_second": 5330.401612738009,
+      "samples": [
+        {
+          "seconds": 0.018009899999015033,
+          "calls": 48,
+          "projected_tokens": 444,
+          "score_elements": 10766,
+          "proposed": 252,
+          "accepted": 7,
+          "rolled_back": 245
+        },
+        {
+          "seconds": 0.01839789999939967,
+          "calls": 48,
+          "projected_tokens": 444,
+          "score_elements": 10766,
+          "proposed": 252,
+          "accepted": 7,
+          "rolled_back": 245
+        },
+        {
+          "seconds": 0.016806700004963204,
+          "calls": 48,
+          "projected_tokens": 444,
+          "score_elements": 10766,
+          "proposed": 252,
+          "accepted": 7,
+          "rolled_back": 245
+        }
+      ],
+      "equal_full_recompute": true
+    }
+  },
+  "scope": "CPU engine wall time; no model construction, oracle or network; all requests arrive at start"
+}

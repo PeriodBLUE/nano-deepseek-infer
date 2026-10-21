@@ -25,7 +25,7 @@
 - **V4 架构组件**：指针对 V4 的混合 attention、压缩 cache、mHC 等组合，不将普通 attention + MoE 计作 V4。本项目明确为 ✗。
 - **独立数值参考**：Alexander-Qiu 有 Transformers 对照，hebo 有独立 oracle；本项目提供独立控制流参考，但仍共享 NumPy 与权重，因此加脚注。仅 self full/cache 对比不足以据此打勾。
 - **DSpark 方程验证**：本项目的 ✓* 对应独立的 [DSpark 方程与双代际调度实验](dspark.md)，含标量和穷举参考；在线 bigram 草稿路径单独测试。singzhou 将 MTP speculative decoding 列为未实现范围；hebo 有对应的方程／调度向量验证。
-- **跨请求前缀复用**：一个请求内部的增量 KV 不算此项。nano-vLLM 有 prefix caching；本项目支持显式公共前缀复用，以数组复制隔离分支，故为 ✓\*。
+- **跨请求前缀复用**：一个请求内部的增量 KV 不算此项。nano-vLLM 有 prefix caching；本项目保留数组复制基线，并提供分页最长前缀 LRU 索引、引用计数和 COW 实验，故为 ✓\*。
 - **专家副本放置实验**：仅有 MoE 路由不足以打勾。本项目有物理副本、放置和分发合并实验；未专门核实的其他项目为 —。
 
 表中 **— 不等于 ✗**。勾代表所核对版本的实现或文档证据；待办或未来计划不算作支持。
@@ -54,7 +54,7 @@
 
 其依赖声明包含 PyTorch、Transformers、FlashAttention；model runner 使用 CUDA，缓存块管理服务于实际模型推理。它的 prefix caching、tensor parallelism 和 CUDA Graph 是理解 GPU 推理实现的重要入口。
 
-本项目的 EP/CP 是单进程模拟，调度 worker 内也是逐请求执行，没有与其比较吞吐量的基础。这里保留的是正确性对照、状态可见性和最少运行依赖，不能据此推出速度优势。
+本项目的 EP/CP 是单进程模拟，worker 提供逐请求与 batched NumPy 两条路径，没有与其比较吞吐量的基础。这里保留的是正确性对照、状态可见性和最少运行依赖，不能据此推出速度优势。
 
 ## 本项目的差异如何被检查
 
@@ -67,6 +67,6 @@
 | 可回读上游的教程 | [upstream-map.md](upstream-map.md)：固定提交、文件、符号和简化边界 | 与上游功能或模型架构完整对应 |
 | 独立参考验证 | [verification.py](../nano_infer/verification.py)：逐 token oracle、四组 fixture、故障变体、源码摘要 | 独立数学规范或第三方推理后端；oracle 仍可能与实现共享规格错误 |
 | 实际 shape 导览 | [shape-tour.json](../examples/shape-tour.json)：实际 prefill/decode 中间 shape | 完整 V4 多层架构导览 |
-| 跨请求前缀复用 | [prefix.py](../nano_infer/prefix.py)：公共 KV 一次计算、分支复制；[测试](../tests/test_verification.py)检查隔离 | 自动 prefix 匹配、分页共享、copy-on-write 或网络缓存 |
+| 跨请求前缀复用 | [paging.py](../nano_infer/paging.py)：最长前缀 LRU、共享块与 COW；[测试](../tests/test_systems.py)检查活跃分支跨驱逐存活 | 网络 KV 服务或跨模型缓存复用 |
 
 这些是项目目前已有的组合与取舍，不是“首个”“唯一”或“全面领先”的声明。以后扩展功能时，应同步更新这一比较的版本和证据，避免把旧结论当作其他项目的现状。

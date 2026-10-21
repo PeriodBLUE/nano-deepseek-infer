@@ -8,7 +8,7 @@
 
 | 上游文件／入口 | 阅读时关注什么 | nano 入口 |
 |---|---|---|
-| [README.md](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md) | 发布范围、硬件限制、哪些服务组件不包含 | README 的边界表 |
+| [README.zh-CN.md](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/README.md) | 发布范围、硬件限制、哪些服务组件不包含 | README 的边界表 |
 | [v4_modules/builder.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/builder.py)：`V41Builder` | 配置怎样构建主模型 block、预测头、DFlash 头与共享拓扑 | `TinyModel` 之后的架构进阶；本地未实现这些结构 |
 | [decoder_layer.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/decoder_layer.py)：`DeepseekDecoderLayer`、`HCLayerMixin` | attention、MoE、归一化和残差状态的连接 | `TinyModel.forward` 的子层数据流；本地无 HC 结构 |
 | [v4_modules/attn.py](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/model_executor/models/v4_modules/attn.py)：`V4AttentionBase`、`V4Attention` | 投影、RoPE、压缩 KV、稀疏索引、SWA 与共享路径 | `tour` 建立 shape 视角后，继续追踪真实布局 |

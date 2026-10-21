@@ -21,9 +21,10 @@ import numpy as np
 from nano_infer.engine import Engine, Request
 from nano_infer.model import VOCAB, TinyModel, encode, greedy
 from nano_infer.training import load_checkpoint
+from nano_infer.paging import BlockPool
 
 
-def benchmark(repeats=3, max_tokens=24, seed=7, checkpoint=None):
+def benchmark(repeats=3, max_tokens=24, seed=7, checkpoint=None, batched=False):
     if repeats < 1 or max_tokens < 1:
         raise ValueError("positive repeats and output length required")
     rng = np.random.default_rng(2026)
@@ -43,7 +44,8 @@ def benchmark(repeats=3, max_tokens=24, seed=7, checkpoint=None):
         policy = policies[name].copy()
         pipelined = policy.pop("pipelined", False)
         model = make_model()
-        engine = Engine(model, token_budget=12, max_batch=3, prefill_chunk=4, **policy)
+        engine = Engine(model, token_budget=12, max_batch=3, prefill_chunk=4, batched=batched,
+                        pool=BlockPool(128, 8, model.width) if batched else None, **policy)
         requests = [Request(f"r{i}", p, max_tokens, temperature=0) for i, p in enumerate(prompts)]
         start = perf_counter()
         outputs = engine.run(requests, pipelined=pipelined)
@@ -85,6 +87,7 @@ def benchmark(repeats=3, max_tokens=24, seed=7, checkpoint=None):
                                  thread_env={k: os.environ.get(k) for k in
                                              ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")}),
                 workload=dict(seed=seed, prompts=prompts, max_tokens=max_tokens,
+                              batched=batched, paged=batched,
                               checkpoint_sha256=hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest() if checkpoint else None,
                               output_tokens=output_tokens, token_budget=12, max_batch=3,
                               prefill_chunk=4, repeats=repeats, warmups_per_policy=1),
@@ -100,10 +103,11 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=24)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--batched", action="store_true", help="batched attention with paged KV")
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
     try:
-        report = benchmark(args.repeats, args.max_tokens, args.seed, args.checkpoint)
+        report = benchmark(args.repeats, args.max_tokens, args.seed, args.checkpoint, args.batched)
     except ValueError as exc:
         parser.error(str(exc))
     print("CPU only | identical workload | full-recompute outputs checked | warmup excluded")

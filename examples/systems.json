@@ -1,0 +1,54 @@
+{
+  "mla": {
+    "max_abs_error": 6.661338147750939e-16,
+    "tokens": 17,
+    "latent_cache_bytes": 1632,
+    "expanded_cache_bytes": 7072,
+    "dimensions": {
+      "heads": 4,
+      "content": 6,
+      "value": 6,
+      "latent": 8,
+      "rotary": 4
+    },
+    "equation": "Q_C K_C^T = (Q_C W_UK^T) C^T; softmax(S) V = (softmax(S) C) W_UV"
+  },
+  "paging": {
+    "shared": {
+      "total_blocks": 16,
+      "used_blocks": 2,
+      "free_blocks": 14,
+      "allocated_bytes": 24576,
+      "live_block_bytes": 3072,
+      "copy_on_write_blocks": 0
+    },
+    "after_branch_writes": {
+      "total_blocks": 16,
+      "used_blocks": 6,
+      "free_blocks": 10,
+      "allocated_bytes": 24576,
+      "live_block_bytes": 9216,
+      "copy_on_write_blocks": 2
+    },
+    "final": {
+      "total_blocks": 16,
+      "used_blocks": 0,
+      "free_blocks": 16,
+      "allocated_bytes": 24576,
+      "live_block_bytes": 0,
+      "copy_on_write_blocks": 2
+    },
+    "max_abs_error": 6.661338147750939e-16
+  },
+  "batching": {
+    "query_lengths": [
+      1,
+      5,
+      5
+    ],
+    "live_tokens": 11,
+    "projected_tokens_including_padding": 15,
+    "forward_calls": 1,
+    "max_abs_error": 8.881784197001252e-16
+  }
+}

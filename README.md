@@ -1,23 +1,23 @@
 # nano-deepseek-infer
 
-[中文](README.md) | [English](README.en.md)
+**[English](README.md)** | [简体中文](README.zh-CN.md)
 
-**用一台普通电脑，从零跑通推理引擎的关键机制，沿源码讲清 DeepInfer 的设计与取舍。**
+**Understand inference engines on an ordinary computer, then explain DeepInfer's design and tradeoffs through its source code.**
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
-面向初学者与推理工程求职者 · 中英双语 · 仅 NumPy · CPU 训练与文本生成
+For beginners and aspiring inference engineers · English + Chinese · NumPy only · CPU training and generation
 
-为什么生成一个 token 要读历史 KV？为什么多猜几个 token 有时反而更慢？为什么复制专家可以缓解负载，却不能随意更改路由结果？
+Why does generating one token read historical KV? Why can drafting more tokens make decoding slower? Why can expert replication reduce imbalance while changing the router would change the model?
 
-从 [`infer.py`](infer.py) 开始：**请求陆续到达 → 分块 prefill → 调度草稿验证 → KV 提交/回滚 → 输出与释放。** 整条路径只依赖 NumPy，输出自动与全前缀重算对照。再用八个专题实验拆解细节，用 [`bench.py`](bench.py) 测量同一工作负载下的收益与成本，最后回到 DeepInfer 源码。
+Start with [`infer.py`](infer.py): **live arrivals → chunked prefill → scheduled draft verification → KV commit/rollback → output and release.** The whole path uses NumPy and checks outputs against full-prefix recomputation. Explore details through eight focused labs, measure a fixed workload with [`bench.py`](bench.py), then follow the corresponding DeepInfer source.
 
-[开始运行](#三分钟运行) · [系统设计与面试导读](docs/interview-guide.md) · [DeepInfer 源码地图](docs/upstream-map.md) · [相关项目对比](#能力与资源矩阵)
+[Run the project](#run-in-three-minutes) · [System design and interview guide](docs/interview-guide.en.md) · [DeepInfer source map](docs/upstream-map.md) · [Related projects](#capability-and-resource-matrices)
 
 
-## 三分钟运行
+## Run in three minutes
 
-Python 3.10+。Windows、Linux、macOS 均可使用，运行时依赖只有 NumPy。
+Requires Python 3.10+. Works on Windows, Linux and macOS; NumPy is the only runtime dependency.
 
 ```bash
 git clone https://github.com/PeriodBLUE/nano-deepseek-infer.git
@@ -25,7 +25,7 @@ cd nano-deepseek-infer
 python -m venv .venv
 ```
 
-激活环境，任选对应的一行：
+Activate the environment using the appropriate command:
 
 ```bash
 # Linux / macOS
@@ -40,9 +40,9 @@ python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt
 python infer.py
 ```
 
-如果 PowerShell 禁止激活脚本，可以直接使用 `.\.venv\Scripts\python.exe` 代替 `python`，无需修改系统执行策略。
+If PowerShell blocks activation, replace `python` with `.\.venv\Scripts\python.exe`; no system execution-policy change is needed.
 
-默认运行的一段输出如下；`r1` 在 `r0` 已经开始 decode 后到达。`input` 包括 pending 与草稿，`rollback` 表示本轮丢弃的 KV 条目。
+A default-run excerpt: `r1` arrives after `r0` has started decoding. `input` includes pending and draft tokens; `rollback` counts discarded KV entries.
 
 ```text
 step request phase    input draft accept rollback cache     output
@@ -54,9 +54,9 @@ step request phase    input draft accept rollback cache     output
    3 r1      prefill      3     0      0        0 3->6      ''
 ```
 
-每次运行结束都检查输出等价与缓存释放。上面的固定种子示例便于观察状态；下面的训练权重路径使用同一套引擎生成文本。
+Every run checks output equivalence and cache release. The excerpt above uses seeded weights for a compact state trace; the trained path below uses the same engine.
 
-**改一个参数，验证一个判断：**
+**Change one parameter and test one hypothesis:**
 
 ```bash
 python infer.py --draft-tokens 0
@@ -65,9 +65,9 @@ python infer.py --prompt "nano" --prompt "cache" --arrival-gap 1
 python bench.py --repeats 5 --json benchmark.json
 ```
 
-`bench.py` 固定输入、模型种子和输出长度，比较普通缓存、固定草稿、自适应草稿与流水草稿。每种策略先 warmup，再轮换顺序重复测量；报告 CPU 墙钟耗时、吞吐和工作量，保存原始样本、环境与源码摘要。计时包含引擎执行，不包含模型构造和正确性参考；**没有“优化必须更快”的断言**。
+`bench.py` fixes inputs, model seed and output length, comparing cached, fixed-draft, adaptive-draft and pipelined-draft execution. It warms up each policy and rotates measurement order, reporting CPU wall time, throughput and work. JSON includes raw samples, environment and source digests. Timing includes engine execution, excluding model construction and the correctness oracle. **An optimization is allowed to be slower.**
 
-深入观察与验证：
+Inspect individual mechanisms and verify:
 
 ```bash
 python -m nano_infer tour
@@ -81,11 +81,11 @@ python -m nano_infer tour --json shape-tour.json
 python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```
 
-`generate` 的字符 tokenizer 仅支持小写英文字母、数字、空格及少量标点。训练语料为英文。安装后也可使用 `nano-infer` 命令。
+The toy tokenizer accepts lowercase English letters, digits, spaces and a few punctuation characters. It does not support Chinese generation. After installation, `nano-infer` is also available as a command.
 
-## 训练权重，再用推理引擎生成文本
+## Train weights, then serve text
 
-仓库附带 CPU 训练得到的 87,936 参数 attention + top-2 MoE 权重，可以直接加载；也可以从零训练全部参数，读懂每一步 NumPy 反向传播与 Adam 更新：
+The repository includes an 87,936-parameter CPU-trained attention + top-2 MoE checkpoint. Load it directly, or train all model parameters yourself using explicit NumPy backprop and Adam:
 
 ```bash
 python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64
@@ -96,152 +96,175 @@ python infer.py --checkpoint artifacts/tiny-trained.npz --prompt "the model " --
 python -m nano_infer.dspark --json dspark.json
 ```
 
-[`train.py`](train.py) 串起 next-character loss、causal attention/MoE 梯度、裁剪、Adam、留出集评估、保存/重载与生成。[`data/`](data/) 提供原创英文训练文本及独立留出文本。[训练记录](examples/training.json)、[训练权重推理轨迹](examples/trained-inference.json)与[训练权重基准](examples/trained-benchmark.json)可直接查看。训练记录包含配置、loss、生成样本与数据/权重摘要；[训练导读](docs/training.md) 解释张量、路由梯度与评估。字符词表支持小写英文及部分标点。
+[`train.py`](train.py) connects next-character loss, causal attention/MoE gradients, clipping, Adam, validation, checkpoint save/reload and generation. [`data/`](data/) contains the original English training and held-out texts. Inspect the [trained inference trace](examples/trained-inference.json) and [trained benchmark](examples/trained-benchmark.json). [Training results](examples/training.json) record configuration, losses, samples and weight/data digests. The [training walkthrough](docs/training.md) explains tensor shapes, routing derivatives and evaluation. The character vocabulary supports lowercase English and selected punctuation.
 
-**DSpark 同样可以运行：** [方程实验](docs/dspark.md) 覆盖特征投影/RMSNorm、Markov logits、归一化前置信度、逐步温度和双代际调度。24 组 head 张量与独立标量方程对照，80 组预算与分配案例通过穷举参考验证。每个候选预算的预期 token、graph bucket、耗时和吞吐都可查看。
+**DSpark is executable too:** the [equation lab](docs/dspark.md) covers feature projection/RMSNorm, Markov-corrected logits, pre-norm confidence, per-step temperature and two-generation scheduling. Compare 24 head fixtures with scalar equations and 80 scheduler fixtures with an exhaustive oracle. Every candidate budget exposes expected tokens, graph bucket, time and throughput.
 
-## 这个项目能帮你掌握什么
+## Run the complete inference systems path
 
-| 学习优势 | 你能具体做到 | 从哪里开始 |
+```bash
+python systems.py --json systems.json
+python infer.py --checkpoint checkpoints/tiny-trained.npz --batched --kv-blocks 64 --prompt "the model " --prompt "the cache " --max-tokens 32
+python bench.py --checkpoint checkpoints/tiny-trained.npz --batched --repeats 5
+python load_test.py --requests 8 --json service-load.json
+python serve.py --checkpoint checkpoints/tiny-trained.npz
+```
+
+| Core design | Executable implementation | What you can explain in an interview |
 |---|---|---|
-| **从训练到服务的完整链路** | 推导梯度、训练权重、重载 checkpoint，经同一缓存/调度器生成文本 | [`train.py`](train.py) · [训练导读](docs/training.md) |
-| **DSpark 从公式到决策** | 解释 norm 前置信度、Markov 递推与代际隔离的预算选择 | [DSpark 实验](docs/dspark.md) · [独立参考](nano_infer/dspark_reference.py) |
-| **一条完整的请求主线** | 改动请求到达时机与草稿预算，观察同一调度器中的 prefill、验证、回滚和结束 | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
-| **每个概念都能看见** | 对照 prefill / decode 的实际 shape，逐轮检查草稿接受、KV 回滚与批次变化 | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
-| **优化有可检验的理由** | 说明改变执行方式后哪些输出必须不变，定位因果 mask、位置编码、缓存分支的错误 | `verify` · [正确性检查](docs/interview-guide.md#7-如何证明优化没有改变答案) |
-| **性能判断有收益，也有成本** | 比较同输入、同输出下的 CPU 耗时、调用次数与投影工作，判断优化何时不划算 | [`bench.py`](bench.py) · [性能分析](docs/interview-guide.md#8-面试中的性能问题怎么回答) |
-| **能从小模型走回生产源码** | 找到 DeepInfer 的调度、EPLB、DSpark、YoCo 和 sampler 入口，指出教学机制到生产实现还差什么 | [源码地图](docs/upstream-map.md) · [进阶路线](docs/interview-guide.md#9-走向-deepinfer-与完整模型实现) |
+| **Real batching** | Padded batched Q/K/V and attention, per-request absolute masks, live-row MoE | Why a scheduling batch is different from a matrix batch; how padding changes cost |
+| **Paged KV ownership** | Block tables, free list, reference counts, COW tails, atomic capacity checks; longest-prefix LRU store | How sharing, rollback, eviction and request release interact |
+| **DeepSeek-V2 MLA** | Expanded-KV reference versus absorbed latent-cache attention with decoupled RoPE | Derive the memory reduction and explain which matrix products move |
+| **A working HTTP service** | Bounded admission, FIFO queue, KV reservation, incremental polling, cancellation, deadlines and failure recovery | Trace a request from queue to terminal state and account for its resources |
+| **Request latency** | HTTP load generator with raw timestamps, queue time, TTFT, ITL, TPOT and percentiles | Distinguish server commit latency, client throughput and speculative token bursts |
 
-## 学完后，你能带着哪些成果去面试
+[Walk through every design and API](docs/systems.en.md) · [Numerical and memory results](examples/systems.json) · [HTTP load results](examples/service-load.json) · [Batched engine trace](examples/batched-inference.json) · [Batched benchmark](examples/batched-benchmark.json)
 
-你可以从 loss 一直解释到训练权重生成文本；逐轮推导 prefill/decode 与 KV 所有权；讲清 DSpark 的 head 和预算公式；用控制变量实验说明一次推理优化的收益与成本。每项收获都有代码入口、运行命令与结果记录。
+The numerical fixture uses 1,632 bytes of latent KV versus 7,072 bytes expanded, with output error below `1e-12`. The batch fixture executes 11 live query tokens as 15 padded rows in one forward. These results make both the saving and its execution cost visible.
 
-| 调研的官方岗位 | 本项目对应练习 | 可以展示的成果 |
+## What you will learn
+
+| Learning advantage | What you can demonstrate | Starting point |
 |---|---|---|
-| Anthropic — Inference Engine | batching、缓存状态、确定性 | 到达/回滚/释放 trace 与故障回归测试 |
-| OpenAI — Inference Performance Optimization | 工作负载与成本分析 | CPU benchmark、DSpark 候选成本曲线 |
-| NVIDIA — Inference Performance Engineer | KV、MoE、推测解码与受控实验 | 工作量、专家负载及输出一致性检查 |
-| Together AI — ML Engineer, Inference | runtime 接入、可靠性与工具 | 训练→checkpoint→引擎、异常路径测试 |
+| **Training to serving** | Derive gradients, train weights, reload a checkpoint and generate through the same cache/scheduler | [`train.py`](train.py) · [Training walkthrough](docs/training.md) |
+| **DSpark from equations to decisions** | Explain pre-norm confidence, Markov recurrence and generation-isolated budget selection | [DSpark lab](docs/dspark.md) · [Reference](nano_infer/dspark_reference.py) |
+| **A complete request lifecycle** | Change arrival times and draft budgets; follow prefill, verification, rollback and completion in one scheduler | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
+| **Visible tensors and state** | Read actual prefill/decode shapes, draft acceptance, cache rollback and scheduling traces | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
+| **Testable optimization arguments** | Explain what must remain invariant and detect causal-mask, position and branch-isolation errors | `verify` · [Correctness](docs/interview-guide.en.md#7-prove-that-an-optimization-preserves-results) |
+| **Benefits and costs together** | Compare CPU time, target calls and projection work with identical inputs and outputs | [`bench.py`](bench.py) · [Performance reasoning](docs/interview-guide.en.md#8-answer-performance-questions) |
+| **A path into production source** | Find scheduling, EPLB, DSpark, YoCo and sampling entry points, and explain the gap from each teaching example | [Source map](docs/upstream-map.md) · [Next steps](docs/interview-guide.en.md#9-continue-into-deepinfer-and-model-architecture) |
 
-[官方 JD 链接、能力验收表与面试成果清单](docs/career-map.md)（2026-10-21 核对）。按清单整理自己的测量结果，再选择一项 GPU、分布式或服务化任务继续扩展本项目。
+## What you can bring to an Infra interview
 
-## 从第一次运行到能讲清设计
+You can explain a trained model from loss to generated text; trace prefill/decode and KV ownership; derive DSpark head and budget equations; and defend an optimization using controlled measurements. Each outcome has code, a runnable command and a saved result.
 
-不要求先读完整个仓库。按下面顺序，每一步都产出一份自己可以解释的证据。
-
-| 阶段 | 运行与阅读 | 你应该能独立回答 |
+| Official role reviewed | Practice in this repository | Evidence to explain |
 |---|---|---|
-| 1. 看懂一次前向 | `tour`、`demo cache`；读 `model.py` | 为什么 prefill 的 score 是 `4×4`，下一步 decode 是 `1×5`？KV 保存了什么？ |
-| 2. 看懂请求状态 | `python infer.py`；读 `engine.py`；再运行 `demo prefix` | 晚到请求怎样进入正在运行的引擎？token budget 如何约束草稿？哪些状态属于请求？ |
-| 3. 讲清执行优化 | `demo speculative --trace`、`demo moe`、`demo context`、`demo replay` | 每项优化省什么、增加什么、依赖什么前提？被拒绝的草稿为何不能留在 KV 中？ |
-| 4. 拿出验证证据 | `python bench.py`、`verify`、测试与[动手练习](docs/exercises.md) | 正确性通过后，优化是否真的降低了耗时？哪些结论仍需 GPU 测量？ |
-| 5. 组织系统设计回答 | [面试导读](docs/interview-guide.md) → [固定版本上游源码](docs/upstream-map.md) | 如何把模型、引擎、kernel 和服务层连起来，并指出各自负责的问题？ |
+| Anthropic — Inference Engine | Batching, cached state and determinism | Arrival/rollback/release trace and regression tests |
+| OpenAI — Inference Performance Optimization | Workload and cost analysis | CPU benchmark and DSpark candidate cost curve |
+| NVIDIA — Inference Performance Engineer | KV, MoE, speculation and controlled experiments | Work counters, replica loads and output checks |
+| Together AI — ML Engineer, Inference | Runtime integration, reliability and tooling | Training→checkpoint→engine and failure tests |
 
-## 八个实验，八个具体问题
+[Official JD links, skill checklist and interview deliverables](docs/career-map.en.md) — reviewed 2026-10-21. Follow the checklist to produce your own model, engine, memory and HTTP measurements.
 
-| 实验 | 要回答的问题 | 本地实现与检查 |
+## From a first run to a design explanation
+
+You do not need to read the entire repository first. Follow this sequence and produce evidence you can explain at each stage.
+
+| Stage | Run and read | Question to answer independently |
 |---|---|---|
-| `cache` | 为什么 decode 不应重新计算整个前缀？ | 真实 Q/K/V 与因果 attention；有／无缓存生成 token 一致 |
-| `prefix` | 不同请求的公共前缀能否只算一次？ | 复用前缀 KV，复制独立分支；与各请求完整重算一致 |
-| `speculative` | 草稿错了怎么恢复？什么时候值得多猜几个？ | 一次块前向验证多个草稿；事务式回滚；固定预算与历史接受率预算对比 |
-| `moe` | 热点专家导致的卡间失衡怎么缓解？ | top-2 路由、真实专家矩阵计算、复制／放置／分发／合并；结果数值一致 |
-| `context` | 分开计算 softmax 的结果可以直接平均吗？ | 分片计算最大值、归一化常数与加权值，再合并；与完整 attention 比较 |
-| `replay` | 只重放尾部有哪些严格前提？ | 单层 SWA，保留绝对位置及回滚余量；当前／回退位置和后续 decode 一致 |
-| `scheduling` | 长 prompt 和短请求如何共同推进？ | token budget、chunked prefill、请求结束后退出批次、CPU lookahead、独立随机数流 |
-| `structured` | 怎样让生成遵循格式约束？ | 对合法下一字符的 logits 做 mask；实际生成两种 JSON 候选之一 |
+| 1. Understand a forward pass | `tour`, `demo cache`; `model.py` | Why are scores `4×4` during prefill and `1×5` in the next decode step? What does KV store? |
+| 2. Follow request state | `python infer.py`; `engine.py`; then `demo prefix` | How do new requests enter a running engine? How does the token budget constrain drafts? Which state belongs to a request? |
+| 3. Explain execution optimizations | `demo speculative --trace`, `demo moe`, `demo context`, `demo replay` | What does each optimization save, add and assume? Why must rejected drafts leave the cache? |
+| 4. Produce verification evidence | `python bench.py`, `verify`, tests and [exercises, Chinese](docs/exercises.md) | After passing correctness checks, does the optimization actually reduce elapsed time? Which claims still need GPU measurements? |
+| 5. Build a system-design answer | [Interview guide](docs/interview-guide.en.md) → [pinned upstream source](docs/upstream-map.md) | How do the model, engine, kernels and service fit together, and what does each own? |
 
-每个实验先执行正确性断言，再输出结果。记录：[实验结果](examples/results.json) · [实际 shape](examples/shape-tour.json) · [独立参考验证](examples/verification.json)。浮点误差的末位可能随 NumPy／BLAS 版本变化。验证记录包含 Python/NumPy 版本、源码摘要、四组输入及故障检出结果；这些摘要用于定位版本，不是签名或官方一致性认证。
+## Eight experiments
 
-这套默认配置的一次运行得到：
+| Lab | Question | Implementation and check |
+|---|---|---|
+| `cache` | Why avoid recomputing the prefix during decode? | Real causal attention; cached and uncached token outputs agree |
+| `prefix` | Can several requests compute their common prefix once? | Reuse prefix KV with independent branches; compare against full recomputation |
+| `speculative` | How do rejected drafts recover? How much should we draft? | Block verification, transactional rollback, fixed vs historical budgets |
+| `moe` | How can replicas reduce expert hotspots? | Top-2 routing, expert matrix computation, physical placement and combine equivalence |
+| `context` | Can we average shard-local softmax outputs? | Merge maxima, normalization sums and weighted values; compare with full attention |
+| `replay` | When is replaying only a suffix valid? | Single-layer SWA, absolute positions and rollback allowance; boundary/decode agreement |
+| `scheduling` | How do long prompts coexist with short requests? | Token budgets, chunked prefill, request completion, CPU lookahead and per-request RNG |
+| `structured` | How can sampling obey a format? | Mask legal next characters and generate one of two valid JSON strings |
 
-- **KV cache**：投影 token 数从 `708` 降到 `41`，输出 token 一致。这是工作量计数，不是墙钟加速倍数。
-- **共享前缀**：三个请求共享 `29` 个 token 的前缀，投影 token 数从 `149` 降到 `91`，节省 `58` 次 token 投影；分支复制仍消耗内存和带宽。
-- **固定长度草稿**：目标模型调用从 `48` 次降到 `26` 次，但投影 token 数从 `61` 增到 `156`。调用更少不代表 CPU 一定更快。
-- **冷启动自适应草稿**：早期草稿质量差，预算降为零，目标调用 `49` 次。这一反例说明低质量草稿和不完善的控制器会增加开销。
-- **MoE**：这批数据的两组模拟 rank 路由数从 `[80, 48]` 变为 `[66, 62]`，输出误差小于 `1e-12`。负载改善依赖输入分布。
-- **尾部重放**：窗口 `8`、回滚余量 `3` 时，将这个单层模型的 prompt 重放从 `43` 个 token 缩至 `11` 个。
+Each lab checks its contract before reporting results. Checked-in examples: [lab output](examples/results.json), [observed shapes](examples/shape-tour.json), [reference verification](examples/verification.json). Last-bit errors may differ across NumPy/BLAS versions. Verification records runtime versions, source digests, four fixtures and fault detection; digests identify source content, not signatures or official conformance certification.
 
-## 代码如何连起来
+One run of the default configuration shows:
+
+- **KV reuse:** projected tokens fall from `708` to `41`, with identical output tokens. This counts work, not wall-clock speedup.
+- **Shared prefix:** three requests share `29` tokens. Projected tokens fall from `149` to `91`, saving `58` token projections. Branch copying still costs memory and bandwidth.
+- **Fixed drafts:** target calls fall from `48` to `26`, while projected tokens rise from `61` to `156`. Fewer calls do not guarantee faster CPU execution.
+- **Cold-start adaptive drafts:** poor early drafts cause the simple controller to stop drafting; target calls become `49`. It has no exploration mechanism.
+- **MoE:** simulated rank routes change from `[80, 48]` to `[66, 62]`, with output error below `1e-12`. Gains depend on the workload.
+- **Suffix replay:** window `8` plus rollback allowance `3` reduces this single-layer prompt replay from `43` tokens to `11`.
+
+## Code structure
 
 ```mermaid
 flowchart LR
-    R[请求与独立 RNG] --> S[token budget / chunked prefill]
+    R[Requests and local RNG] --> S[Token budget / chunked prefill]
     S --> P[Work: prefill / decode / verify]
-    D[请求独立的 bigram draft] --> P
+    D[Request-local bigram draft] --> P
     P --> W[CPU worker]
-    W --> A[causal attention + KV cache]
-    A --> M[top-2 MoE dispatch / combine]
-    M --> L[logits]
-    L --> O[采样或验证 / KV回滚 / 提交输出]
+    W --> A[Causal attention + KV cache]
+    A --> M[Top-2 MoE dispatch / combine]
+    M --> L[Logits]
+    L --> O[Sample or verify / KV rollback / commit]
     O --> S
-    O --> F[结束时释放状态]
+    O --> F[Release completed state]
 ```
 
-`Engine(max_draft=4)` 将 greedy 草稿验证纳入调度批次，草稿也占用 token budget；每个请求独立保存 draft、历史预算与 KV。`add_request()` / `step()` 允许轮次间提交新请求，`run()` 提供离线与 CPU 流水入口。单请求 `speculative()` 保留为专题实验，与引擎共用 `greedy_prefix()` 验证规则。
+`Engine(max_draft=4)` schedules greedy verification within the shared token budget. Each request owns its draft, budget history and KV. `add_request()` / `step()` admit new work between rounds; `run()` provides offline and CPU-pipelined loops. The single-request `speculative()` lesson shares the same `greedy_prefix()` verification rule.
 
-建议按以下顺序阅读：
+Suggested reading order:
 
-1. [infer.py](infer.py)：完整驱动循环，输入与输出都在这里。
-2. [engine.py](nano_infer/engine.py)：入队 → 规划 → 执行 → 提交/回滚 → 释放。
-3. [model.py](nano_infer/model.py) 与 [decoding.py](nano_infer/decoding.py)：数值前向和草稿验证。
-4. [bench.py](bench.py) 与 [引擎测试](tests/test_engine.py)：固定工作负载、真实耗时与状态边界。
-5. [parallel.py](nano_infer/parallel.py)、[labs.py](nano_infer/labs.py) 与 [prefix.py](nano_infer/prefix.py)：并行与前缀共享专题。
-6. [verification.py](nano_infer/verification.py)：独立参考和实际 shape。[设计取舍与参考项目](docs/nano-design.md)解释为什么保留这些边界。
+1. [infer.py](infer.py): the complete driving loop, inputs and outputs.
+2. [engine.py](nano_infer/engine.py): admit → plan → execute → commit/rollback → release.
+3. [model.py](nano_infer/model.py) and [decoding.py](nano_infer/decoding.py): numerical forward and draft verification.
+4. [bench.py](bench.py) and [engine tests](tests/test_engine.py): fixed workload, measured time and state boundaries.
+5. [parallel.py](nano_infer/parallel.py), [labs.py](nano_infer/labs.py) and [prefix.py](nano_infer/prefix.py): parallelism and shared-prefix labs.
+6. [systems.py](systems.py), [serve.py](serve.py), [load_test.py](load_test.py): batch packing, physical memory ownership and the request lifecycle.
+7. [verification.py](nano_infer/verification.py): independent reference and observed shapes. [Design decisions and references](docs/nano-design.md) explain the scope.
 
-## 能力与资源矩阵
+## Capability and resource matrices
 
-本项目把 **CPU 训练、权重文本生成、可逐步追踪的请求引擎、DSpark 方程验证与受控性能实验** 放进同一套 NumPy 代码，读者可以沿同一条路径理解模型、状态与成本。
+The project combines **CPU training, checkpoint generation, an inspectable request engine, DSpark equation checks and controlled performance experiments** in one NumPy codebase.
 
-**符号：✓ 已有实现／明确文档；✗ 明确不支持或不满足该列条件；— 本次未核实；✓\* 有条件支持，见脚注。** 不把“未核实”当“不支持”，也不将每个勾视为优势。对其他项目的判断来自 2026-10-21 的固定版本源码／文档核对，未做横向运行或性能测量。[逐项依据](docs/comparison.md)
+**Legend: ✓ implementation or explicit documentation; ✗ explicitly unsupported or does not meet the column's definition; — not verified in this review; ✓\* conditional, see notes.** Unknown is not unsupported, and a check is not automatically an advantage. Other projects were reviewed at pinned revisions on 2026-10-21; we did not run a cross-project benchmark. [Evidence and revisions](docs/comparison.md)
 
-### 运行条件与模型用途
+### Execution requirements and model use
 
-| 项目 | CPU tiny 路径 | 仅 NumPy 运行时 | 默认 demo 不下载权重 | 训练后权重文本生成 |
+| Project | CPU tiny path | NumPy-only runtime | Default demo needs no weights download | Text generation with trained weights |
 |---|:---:|:---:|:---:|:---:|
 | [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) | ✓ | ✗ | ✗¹ | ✓ |
 | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
 | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
 | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
-| **本项目** | **✓** | **✓** | **✓** | **✓** |
+| **This project** | **✓** | **✓** | **✓** | **✓** |
 
-¹ 默认示例下载 SmolLM2-135M；它另有不下载权重的 tiny 测试。² 指其自训练 native bundle 的文本生成，不表示加载了官方 DSpark checkpoint。
+¹ The default example downloads SmolLM2-135M; separate tiny tests do not need weights. ² Its locally trained native bundle supports generation; this does not imply an official DSpark checkpoint runtime.
 
-### 机制与验证范围
+### Mechanisms and verification scope
 
-| 项目 | V4 架构组件 | 独立数值参考 | DSpark 方程验证 | 跨请求前缀复用 | 专家副本放置实验 |
+| Project | V4 architecture components | Independent numerical reference | DSpark equation checks | Cross-request prefix reuse | Expert replica placement lab |
 |---|:---:|:---:|:---:|:---:|:---:|
 | Alexander-Qiu/nano-deepinfer | ✗ | ✓ | — | — | — |
 | singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
 | hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
 | GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
-| **本项目** | **✗** | **✓\*⁵** | **✓\*⁸** | **✓\*⁶** | **✓\*⁷** |
+| **This project** | **✗** | **✓\*⁵** | **✓\*⁸** | **✓\*⁶** | **✓\*⁷** |
 
-³ tiny 参考结构，不代表官方权重／生产 kernel 对齐。⁴ CPU 方程与调度向量检查，不代表官方权重推测运行时。⁵ 独立控制流的 toy oracle，共享权重与 NumPy；不是第三方推理后端对照。⁶ 显式公共前缀、分支数组复制；无分页、自动匹配或驱逐。⁷ 单进程物理专家副本模拟，无真实多卡通信。
+³ Tiny reference architectures, not official-weight or production-kernel parity. ⁴ CPU equation/scheduler vectors, not official-weight speculative serving. ⁵ Independent control flow for the toy equations, sharing weights and NumPy; not a separate inference backend. ⁶ Array-copy baseline plus paged longest-prefix LRU lookup, reference counts and COW (`systems.py`). ⁷ Single-process physical-expert simulation without real device communication.
 
 
-⁸ 特征投影/RMSNorm、Markov logits、归一化前 confidence 与逐步温度、双代际预算分配；标量与穷举参考对照。[方程与证据](docs/dspark.md)。
+⁸ Feature projection/RMSNorm, Markov logits, pre-norm confidence with per-step temperature, and two-generation scheduling; scalar and exhaustive references. [Equations and evidence](docs/dspark.md).
 
-## 与 DeepInfer 的对应和边界
+## DeepInfer mapping and limits
 
-源码核对基于上游提交 [`774ce244b87cc0eb8d4b94ab9f5de2ab22049f01`](https://github.com/deepseek-ai/DeepInfer/tree/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01)，核对日期为 2026-10-21。逐项文件／符号对应见 [源码导读](docs/upstream-map.md)。
+Source review is pinned to DeepInfer [`774ce244b87cc0eb8d4b94ab9f5de2ab22049f01`](https://github.com/deepseek-ai/DeepInfer/tree/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01), reviewed on 2026-10-21. The [source map](docs/upstream-map.md) links files and symbols.
 
-| 上游设计 | nano 中保留的部分 | 明确省略的部分 |
+| Upstream design | Kept here | Omitted |
 |---|---|---|
-| 优化 kernel、模型 runtime | 真正的 NumPy attention 和 MoE 数值计算 | MLA、稀疏 attention、FP8、融合 kernel、CUDA Graph |
-| EP + EPLB | 逻辑／物理专家映射、热点复制、分发与合并 | 多进程、网络通信、在线权重迁移、多历史步优化 |
-| balanced CP | softmax 跨分片的数值合并原理 | 上游 zigzag/mirror query 划分及真实 collective |
-| DSpark / DFlash 与置信度调度 | 特征投影、Markov/confidence 方程、N−2 预算与最新代际分配、独立参考；引擎内 greedy 回滚 | draft decoder 训练、GPU 执行与随机推测采样 |
-| SWA bounded replay | 单层局部依赖的尾部重放证明 | 完整 YoCo、跨层共享 cache、压缩与稀疏状态 |
-| 异步调度 | worker 执行时准备其他就绪请求 | 同一请求提前一轮调度、GPU stream / event |
-| batch invariance | 同一请求独立计算、独立 RNG；改变批次顺序仍输出一致 | 高效批量矩阵乘的跨 batch 位级一致性 kernel |
-| structured output | 有限候选字符串的字符约束 | 通用 JSON Schema、regex、EBNF 编译器 |
+| Kernels and model runtime | NumPy attention/MoE, ragged batched execution; separate V2 MLA absorption lab | V4-specific sparse attention, FP8, fused device kernels, CUDA Graph |
+| EP + EPLB | Logical/physical mapping, replication, dispatch and combine | Processes, network communication, weight migration, multi-step optimization |
+| Balanced CP | Numerically correct softmax shard merge | Upstream zigzag/mirror query layout and real collectives |
+| DSpark/DFlash and confidence scheduling | Feature projection, Markov/confidence equations, N−2 budget and latest-rate allocation, independent references; greedy engine rollback | Draft decoder training, GPU execution and stochastic speculative sampling |
+| SWA bounded replay | A single-layer local-dependency example | Full YoCo, shared cross-layer caches, compressed/sparse states |
+| Asynchronous scheduling | Prepare other ready requests while a worker runs | Same-request lookahead and GPU streams/events |
+| Batch invariance | Fixed per-request computation and independent RNGs | Efficient batch kernels with cross-shape bitwise invariance |
+| Structured output | A finite candidate-string grammar | General JSON Schema, regex or EBNF compilation |
 
-这里的 “batch” 是调度批次，worker 内逐请求执行。EP／CP 的 rank 是单进程模拟。没有 HTTP 服务、分布式 KV cache 服务或多机部署入口。
+`--batched` packs scheduled work into actual batched matrix operations; the per-request path remains the numerical baseline. `serve.py` combines batched execution, paged request caches and HTTP lifecycle management. EP/CP ranks remain single-process simulations. [Systems walkthrough](docs/systems.en.md) explains each interface and measurement.
 
-进一步阅读：[系统设计与面试导读](docs/interview-guide.md) · [设计推导](docs/design.md) · [动手练习](docs/exercises.md) · [完整英文 README](README.en.md)
+Further reading: [system design and interview guide](docs/interview-guide.en.md) · [design derivation, Chinese](docs/design.md) · [exercises, Chinese](docs/exercises.md) · [comparison evidence, Chinese](docs/comparison.md)
 
-## 测试与许可
+## Tests and license
 
-33 项测试覆盖数值等价与引擎状态，包括草稿中的 EOS、极小 token budget、晚到请求、执行失败后清理、跨流水模式的输出一致，全参数梯度、checkpoint 重载、DSpark 方程及独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传完整推理轨迹、CPU 基准、专题实验、shape、训练 smoke run 和 DSpark 验证结果。
+40 tests cover numerical equivalence and engine state, including EOS inside drafts, tiny token budgets, late arrivals, failure cleanup, pipeline equivalence, analytic gradients, checkpoint round trips, DSpark equations, paged COW/eviction, batch masks, MLA, HTTP lifecycle and the independent oracle. GitHub Actions runs Windows/Linux × Python 3.10/3.12 and uploads inference traces, CPU benchmarks, labs, shapes, training smoke runs, DSpark, memory/batching experiments and HTTP load results.
 
-本项目原创教学代码使用 [MIT License](LICENSE)。DeepInfer 的上游代码使用 Apache-2.0；此仓库通过链接提供来源，不包含其源码或权重。参见 [来源与致谢](NOTICE.md)。
+Original code is [MIT licensed](LICENSE). Upstream DeepInfer is Apache-2.0; its code and weights are not vendored here. See [attribution](NOTICE.md).

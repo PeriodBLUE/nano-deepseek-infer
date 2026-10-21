@@ -60,6 +60,13 @@ class KVCache:
         child.k, child.v = self.k.copy(), self.v.copy()
         return child
 
+    def append(self, k, v):
+        self.k = np.concatenate([self.k, k])
+        self.v = np.concatenate([self.v, v])
+
+    def release(self):
+        self.truncate(0)
+
 
 class TinyModel:
     def __init__(self, seed=7, width=24, window=None):
@@ -93,8 +100,7 @@ class TinyModel:
         frequencies = 10000.0 ** (-np.arange(self.width) / self.width)
         x = self.embedding[ids] + 0.1 * np.sin(positions[:, None] * frequencies)
         q, k, v = x @ self.wq, x @ self.wk, x @ self.wv
-        cache.k = np.concatenate([cache.k, k])
-        cache.v = np.concatenate([cache.v, v])
+        cache.append(k, v)
         keys = np.arange(cache.offset, cache.end)
         visible = keys[None, :] <= positions[:, None]
         if self.window is not None:
@@ -116,6 +122,51 @@ class TinyModel:
         # Allocated dense score entries, including entries later masked out.
         self.score_elements += scores.size
         return logits
+
+    def forward_batch(self, chunks, caches):
+        """One padded batched attention operation with per-request absolute masks.
+
+        Q/K/V projections and attention use batched matmul; MoE sees only live
+        rows. Gathered paged KV is materialized here for readable NumPy algebra.
+        """
+        if not chunks or len(chunks) != len(caches) or any(not c for c in chunks):
+            raise ValueError("nonempty chunks and one cache per request required")
+        if len({id(c) for c in caches}) != len(caches):
+            raise ValueError("batch requests must own distinct caches")
+        batch, qmax = len(chunks), max(map(len, chunks))
+        ids = np.zeros((batch, qmax), dtype=int)
+        positions = np.zeros((batch, qmax), dtype=int)
+        live = np.zeros((batch, qmax), dtype=bool)
+        for i, (chunk, cache) in enumerate(zip(chunks, caches)):
+            if any(type(t) is not int or not 0 <= t < len(VOCAB) for t in chunk):
+                raise ValueError("invalid token")
+            ids[i, :len(chunk)] = chunk
+            positions[i, :len(chunk)] = np.arange(cache.end, cache.end + len(chunk))
+            live[i, :len(chunk)] = True
+        x = self.embedding[ids] + .1 * np.sin(positions[..., None] * 10000.**(-np.arange(self.width) / self.width))
+        q, new_k, new_v = x @ self.wq, x @ self.wk, x @ self.wv
+        for i, (chunk, cache) in enumerate(zip(chunks, caches)):
+            cache.append(new_k[i, :len(chunk)], new_v[i, :len(chunk)])
+        kmax = max(map(len, caches))
+        k, v = np.zeros((batch, kmax, self.width)), np.zeros((batch, kmax, self.width))
+        visible = np.zeros((batch, qmax, kmax), dtype=bool)
+        for i, cache in enumerate(caches):
+            k[i, :len(cache)], v[i, :len(cache)] = cache.k, cache.v
+            key_pos = np.arange(cache.offset, cache.end)
+            mask = key_pos[None, :] <= positions[i, :, None]
+            if self.window is not None:
+                mask &= key_pos[None, :] > positions[i, :, None] - self.window
+            visible[i, :, :len(cache)] = mask
+            visible[i, ~live[i], 0] = True  # finite dummy softmax; discard padded Q
+        scores = q @ k.swapaxes(-1, -2) / self.width**.5
+        h = x + (softmax(np.where(visible, scores, -np.inf)) @ v) @ self.wo
+        rows = h[live]
+        logits = (rows + moe_forward(rows, self.gate, self.experts)[0]) @ self.head
+        cuts = np.cumsum([len(c) for c in chunks])[:-1]
+        self.calls += 1
+        self.projected_tokens += batch * qmax  # includes actual padded projection work
+        self.score_elements += scores.size
+        return np.split(logits, cuts)
 
 
 def greedy(model, prompt, max_tokens, cached=True):

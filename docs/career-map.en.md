@@ -1,6 +1,6 @@
 # From project evidence to AI Infra interviews
 
-[中文](career-map.md) · [README](../README.en.md)
+[中文](career-map.md) · [README](../README.md)
 
 Completing this project should let you independently **generate text from trained weights, explain request/cache state at every step, and evaluate an inference optimization through controlled experiments.** Build your interview explanation around reproducible results and code you can modify.
 
@@ -32,7 +32,9 @@ These roles also require experience at their respective levels, plus accelerator
 | Reproducible tests and debugging | ✓ | A state-bug regression that fails before a fix and passes afterward |
 | CUDA/Triton and GPU profiling | ✗ | Port one attention/MoE operator; record profiles and numerical errors |
 | Multi-GPU communication | ✗ | Replace simulated ranks with processes; measure bytes, waiting and hotspots |
-| Online serving and SLOs | ✗ | Add API, cancellation/timeouts, backpressure and load generation; measure TTFT/ITL percentiles |
+| Online request lifecycle and latency | ✓ | HTTP submit/poll/cancel, deadline/backpressure tests and `load_test.py` TTFT/ITL percentiles |
+| Batched execution and physical KV ownership | ✓ | Ragged mask comparison, COW/eviction tests and memory accounting from `systems.py` |
+| Compressed KV equations | ✓ | V2 MLA expanded/absorbed agreement and actual latent-cache bytes |
 
 ## Build an interview project package
 
@@ -40,7 +42,7 @@ These roles also require experience at their respective levels, plus accelerator
 2. **State:** run `infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json my-trace.json`; calculate cache length after a rejected draft.
 3. **Equations:** run `python -m nano_infer.dspark`; calculate a graph-bucket boundary and alter latest confidence to distinguish total-budget selection from allocation.
 4. **Performance:** run `bench.py --repeats 5 --json my-benchmark.json`; explain workload, timing scope, reference outputs and variance.
-5. **Contribution:** finish one extension above, preserving a failure case, fix, tests and measurements.
+5. **Contribution:** change one implemented admission, batching or cache policy, preserving a failure case, fix, tests and measurements.
 
 A factual project description can cover a trainable NumPy attention/MoE model, checkpoint inference, token-budget scheduling, KV rollback, independently checked DSpark equations and fixed-workload speculation measurements. Add your own measured results and be ready to derive every claim.
 

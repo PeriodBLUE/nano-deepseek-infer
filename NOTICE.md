@@ -30,3 +30,8 @@ Pinned revisions, reviewed files and design criteria are recorded in
 and benchmark here are independent implementations, not source-code copies.
 
 The corpus in `data/`, analytic NumPy training, and bundled tiny checkpoint are original project artifacts under MIT. The checkpoint is trained with the configuration and data hashes in `examples/training.json`. DSpark equations were independently implemented from the pinned DeepInfer sources linked in [docs/dspark.md](docs/dspark.md).
+
+The MLA lab independently implements the latent-cache and weight-absorption
+algebra described in [DeepSeek-V2, section 2.1.1](https://arxiv.org/abs/2405.04434).
+The block allocator, batched forward, HTTP adapter and lifecycle measurements
+are original NumPy/standard-library teaching implementations.

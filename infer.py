@@ -12,6 +12,7 @@ from pathlib import Path
 from nano_infer.engine import Engine, Request
 from nano_infer.model import TinyModel, decode, encode, greedy
 from nano_infer.training import load_checkpoint
+from nano_infer.paging import BlockPool
 
 
 def main():
@@ -25,6 +26,9 @@ def main():
     parser.add_argument("--arrival-gap", type=int, default=2, help="logical steps between arrivals")
     parser.add_argument("--seed", type=int, default=7, help="model weight seed")
     parser.add_argument("--checkpoint", type=Path, help="load trained NumPy weights")
+    parser.add_argument("--batched", action="store_true", help="execute padded batched matrix operations")
+    parser.add_argument("--kv-blocks", type=int, default=0, help="use a fixed paged KV pool (0: contiguous)")
+    parser.add_argument("--block-size", type=int, default=8)
     parser.add_argument("--json", type=Path, help="save inputs, outputs and all state transitions")
     args = parser.parse_args()
     try:
@@ -35,8 +39,9 @@ def main():
                     for i, text in enumerate(prompts)]
         make_model = lambda: load_checkpoint(args.checkpoint) if args.checkpoint else TinyModel(seed=args.seed)
         model = make_model()
+        pool = BlockPool(args.kv_blocks, args.block_size, model.width) if args.kv_blocks else None
         engine = Engine(model, token_budget=args.token_budget, prefill_chunk=args.prefill_chunk,
-                        max_draft=args.draft_tokens, adaptive=args.adaptive)
+                        max_draft=args.draft_tokens, adaptive=args.adaptive, batched=args.batched, pool=pool)
     except ValueError as exc:
         parser.error(str(exc))
 
@@ -74,6 +79,7 @@ def main():
                   requests=[dict(id=r.request_id, prompt=r.prompt, output=r.output) for r in requests],
                   arrivals=arrivals, trace=trace, equal_full_recompute=True,
                   caches_released=not engine.caches,
+                  pool=pool.snapshot() if pool is not None else None,
                   work=dict(calls=model.calls, projected_tokens=model.projected_tokens,
                             score_elements=model.score_elements))
     print(f"PASS: all outputs match full recomputation; caches released={not engine.caches}")

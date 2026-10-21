@@ -1,10 +1,10 @@
 # Explain DeepInfer through one request: system design and interview guide
 
-[English](interview-guide.en.md) | [中文](interview-guide.md) | [README](../README.en.md)
+[English](interview-guide.en.md) | [中文](interview-guide.md) | [README](../README.md)
 
 Build an explanation you can draw, execute and follow into source code. For each topic, use **problem → state and data flow → correctness → cost → upstream implementation**. Confidence comes from answering follow-ups: what changed, why it remains correct, when it loses and how to measure that.
 
-Run commands from the repository root. Local mechanisms execute in NumPy; upstream mechanisms require following pinned source. The labs establish an inference-engine perspective. Full DeepSeek architecture, device kernels and distributed services remain further areas of study.
+Run commands from the repository root. Local mechanisms execute in NumPy; upstream mechanisms require following pinned source. The labs establish an inference-engine perspective. The [systems chapter](systems.en.md) connects real batching, physical KV blocks, V2 MLA equations and an HTTP service to this request path.
 
 ## 1. Draw the system boundary
 
@@ -15,7 +15,7 @@ The model specifies the computation; the engine organizes requests, state and ex
 | Model | Tokens, hidden states, attention, expert outputs and logits | `TinyModel.forward`: one attention layer and top-2 MoE |
 | Engine | Which requests run, which tokens they consume, when state and outputs commit | `Request`, `Work`, `Engine._plan/_execute/_finish` |
 | Device execution | Matrix and attention kernels, communication, precision and overlap | NumPy calculations; single-process EP/CP simulations |
-| Service | Admission, rate limits, replica routing, cache services, disaggregation and monitoring | System-design exercises; no network service here |
+| Service | Bounded admission, waiting, cancellation, deadlines and request metrics | `Service`, `serve.py`, `load_test.py` |
 
 This is the engine data flow. Run `python infer.py` to observe draft verification and prefill sharing execution plans. Model and device execution remain at teaching scale.
 
@@ -53,7 +53,7 @@ An emitted token does not acquire K/V until its next forward pass. The final out
 
 `infer.py` calls `add_request()` between rounds so the second request arrives later. `run()` is a convenience API for simultaneous admission. In speculative mode, pending and all candidates consume the token budget. Output limits and EOS constrain committed history; EOS inside an accepted draft must stop output immediately.
 
-**Does a scheduling batch mean parallel arithmetic?** Here the worker executes each request separately. A production engine must also pack requests into device tensors and metadata. Follow upstream [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) and [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp).
+**Does a scheduling batch mean parallel arithmetic?** `--batched` uses `forward_batch()` to pack variable-length requests into actual batched NumPy operations. It applies separate query/key masks and absolute positions, then routes only live MoE rows. The baseline remains per-request execution. See [packing and masks](systems.en.md#1-what-makes-a-batch-real). Follow upstream [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) and [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp).
 
 ## 3. Explain prefill, decode and KV with shapes
 
@@ -72,7 +72,7 @@ Both use `forward(new_tokens, cache)`; the new query length changes. Each logits
 
 **How much memory?** Local K/V arrays use `2Tdb` bytes for length T, width d and b bytes per element; default float64 means b=8. This excludes weights, temporary scores and allocation peaks. General multi-layer models require accounting for layers, KV heads and head dimensions. Compressed KV, windows and cross-layer sharing require their actual layouts.
 
-**Within-request caching versus cross-request reuse:** `demo prefix` computes a common prefix once and copies independent branches. For R requests sharing P tokens, it saves `(R−1)P` projections but still copies memory. A paged extension needs block identity, reference counts, writable tails/copy-on-write, eviction and compatible model/position/prefix state.
+**Within-request caching versus cross-request reuse:** `demo prefix` computes a common prefix once and copies independent branches. For R requests sharing P tokens, it saves `(R−1)P` projections but still copies memory. `systems.py` runs the paged implementation with reference counts, copy-on-write tails, longest-prefix lookup and LRU eviction; tests retain a live branch across eviction. See [ownership](systems.en.md#2-who-owns-a-shared-kv-block).
 
 ## 4. Speculation: verify several tokens in one pass
 
@@ -219,3 +219,7 @@ Accurately distinguish what you ran and analyzed, what you independently impleme
 ## Training, DSpark and job requirements
 
 [Training walkthrough](training.md) connects gradients, weights and serving; [DSpark equations](dspark.md) derive Markov/confidence heads and generation-separated allocation. Use the [official JD mapping](career-map.en.md) to organize your own experiments and interview evidence.
+
+## 11. Explain the implemented systems path
+
+Run `systems.py` to derive V2 MLA absorption and verify physical KV sharing. Run `load_test.py` to trace queued/running/terminal states and measure queue time, TTFT and ITL over HTTP. Use [the systems chapter](systems.en.md) to explain mask construction, memory reservations, cooperative timeouts and measurement boundaries.

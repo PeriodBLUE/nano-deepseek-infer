@@ -1,6 +1,6 @@
 # What makes this a nano inference engine?
 
-[中文](#设计取舍) · [English](#design-decisions) · [README](../README.md)
+[中文](#设计取舍) · [English](#design-decisions) · [README](../README.zh-CN.md)
 
 ## 设计取舍
 
@@ -39,7 +39,7 @@ infer.py
 
 单层 attention + MoE 同时承担训练与推理：`training.py` 显式反向传播，`train.py` 保存权重并重载生成，`infer.py` 用同一前向执行缓存和推测解码。种子初始化保留给固定数值实验；随仓库训练权重用于文本生成。
 
-完整 V4 架构、分页缓存、设备 kernel 和分布式通信，各自都有独立复杂度。这里通过[上游源码地图](upstream-map.md)连接这些方向，避免把近似实现标成完整复现。当前 worker 仍逐请求计算；调度批次不等于向量化模型 batch。
+`forward_batch`、分页 KV 管理、V2 MLA 和 HTTP 请求生命周期分别保留为清晰模块。完整 V4 架构、设备 kernel 和分布式通信各有独立复杂度。这里通过[上游源码地图](upstream-map.md)连接这些方向，避免把近似实现标成完整复现。worker 可选择逐请求参考路径或真正的 batched forward，服务层使用后者。
 
 ### 当前检查过的参考项目
 
@@ -64,7 +64,7 @@ Arrivals in this script use logical steps, not network time. Dynamic admission i
 
 `bench.py` defines a fixed workload and checks every measured output against full-prefix recomputation. It warms up each policy, rotates order, retains raw samples and records environment/source metadata. Timing includes admission through output commit but excludes model/request construction, the reference, printing and file writes. Its p95 is a sample quantile of complete CPU runs, not a production per-request latency SLO. Threading or speculation may lose; no speed threshold is imposed.
 
-The same small model supports explicit NumPy backprop, checkpoint save/reload and text generation through the engine. Seeded initialization remains useful for fixed numerical fixtures. DSpark heads and two-generation scheduling have independent equation references. V4 architecture, paging, device kernels and distributed communication connect through the [upstream map](upstream-map.md); the local worker computes requests individually.
+The same small model supports explicit NumPy backprop, checkpoint save/reload and text generation through the engine. Seeded initialization remains useful for fixed numerical fixtures. DSpark heads and two-generation scheduling have independent equation references. The worker now also supports actual batched execution and paged KV. The HTTP service exposes bounded admission and measured request lifecycles. V2 MLA absorption has a separate numerical lab; the [upstream map](upstream-map.md) keeps model-version boundaries explicit.
 
 The table above records the reviewed projects, revisions and observed GitHub stars on 2026-10-21. nanoGPT is now marked deprecated in favor of nanochat, but remains useful for studying an explicit core loop. nanochat exposes an end-to-end run; nano-vLLM exposes a real engine lifecycle; modded-nanogpt defines a fixed quality target and timing scope. These are source reviews, not locally reproduced training results or cross-project performance rankings.
 

@@ -20,6 +20,10 @@ jobs:
       - run: python infer.py --checkpoint artifacts/tiny-trained.npz --prompt "the model " --max-tokens 24 --json trained-smoke.json
       - run: python infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json trained-inference.json
       - run: python -m nano_infer.dspark --json dspark.json
+      - run: python systems.py --json systems.json
+      - run: python load_test.py --requests 4 --max-tokens 16 --json service-load.json
+      - run: python infer.py --checkpoint checkpoints/tiny-trained.npz --batched --kv-blocks 64 --prompt "the model " --prompt "the cache " --max-tokens 32 --json batched-inference.json
+      - run: python bench.py --checkpoint checkpoints/tiny-trained.npz --batched --repeats 3 --json batched-benchmark.json
       - run: python infer.py --json inference.json
       - run: python bench.py --repeats 3 --json benchmark.json
       - run: python -m nano_infer demo all --json lesson-results.json
@@ -38,3 +42,7 @@ jobs:
             trained-inference.json
             trained-smoke.json
             artifacts/training.json
+            systems.json
+            service-load.json
+            batched-inference.json
+            batched-benchmark.json

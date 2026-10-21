@@ -1,6 +1,6 @@
 # DSpark：从方程到调度决策 / From equations to scheduling
 
-[中文 README](../README.md) · [English README](../README.en.md)
+[中文 README](../README.zh-CN.md) · [English README](../README.md)
 
 运行 `python -m nano_infer.dspark --json dspark.json`。实现位于 [dspark.py](../nano_infer/dspark.py)，独立标量与穷举参考位于 [dspark_reference.py](../nano_infer/dspark_reference.py)。
 

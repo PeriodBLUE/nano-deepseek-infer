@@ -1,8 +1,8 @@
 """One request lifecycle: admit -> plan -> execute -> commit -> release.
 
 step() exposes the loop for live arrivals. run() is its offline convenience API.
-A single worker executes requests individually, optionally while the CPU plans
-OTHER ready requests. Ranks/GPU batches and same-request lookahead are not implied.
+A worker executes per-request or padded batched NumPy operations, optionally
+while the CPU plans OTHER ready requests. Paged KV has explicit admission limits.
 """
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +12,7 @@ from time import perf_counter
 import numpy as np
 
 from .decoding import BigramDraft, ConfidenceBudget, greedy_prefix, sample
+from .paging import PagedCache
 
 
 @dataclass
@@ -36,18 +37,22 @@ class Work:
 
 class Engine:
     def __init__(self, model, token_budget=8, max_batch=3, prefill_chunk=4,
-                 max_draft=0, adaptive=False):
+                 max_draft=0, adaptive=False, batched=False, pool=None):
         if min(token_budget, max_batch, prefill_chunk) < 1 or max_draft < 0:
             raise ValueError("positive scheduler limits and nonnegative max_draft required")
         self.model = model
         self.token_budget, self.max_batch = token_budget, max_batch
         self.prefill_chunk, self.max_draft, self.adaptive = prefill_chunk, max_draft, adaptive
+        self.batched, self.pool = batched, pool
+        if pool is not None and (pool.width != model.width or np.any(pool.refs)):
+            raise ValueError("engine requires an empty, matching-width pool it exclusively owns")
         self._reset()
 
     def _reset(self):
         self.ready = deque()
         self.requests, self.rngs, self.caches = {}, {}, {}
         self.drafts, self.budgets = {}, {}
+        self.reservations = {}
         self.events, self.batches = [], []
         self.failed = False
 
@@ -71,15 +76,38 @@ class Engine:
         if req.eos is not None and not 0 <= req.eos < len(self.model.embedding):
             raise ValueError("invalid EOS token")
         rng = np.random.default_rng(req.seed)
+        blocks = self.required_blocks(req)
+        if self.pool is not None and blocks > len(self.pool.refs) - sum(self.reservations.values()):
+            raise MemoryError("KV admission capacity reached")
         self.requests[req.request_id] = req
         if req.max_tokens:
+            self.reservations[req.request_id] = blocks
             self.rngs[req.request_id] = rng
-            self.caches[req.request_id] = self.model.cache()
+            self.caches[req.request_id] = PagedCache(self.pool) if self.pool is not None else self.model.cache()
             if self.max_draft:
                 self.drafts[req.request_id] = BigramDraft()
                 self.drafts[req.request_id].observe(req.prompt)
                 self.budgets[req.request_id] = ConfidenceBudget(self.max_draft)
             self.ready.append(req.request_id)
+
+    def required_blocks(self, req):
+        if self.pool is None or req.max_tokens == 0:
+            return 0
+        peak = len(req.prompt) + req.max_tokens - 1 + self.max_draft
+        return (peak + self.pool.block_size - 1) // self.pool.block_size
+
+    def _release(self, key):
+        if key in self.caches:
+            self.caches[key].release()
+        for state in (self.caches, self.rngs, self.drafts, self.budgets, self.reservations):
+            state.pop(key, None)
+
+    def cancel(self, key):
+        """Cancel between step calls; partial output remains inspectable."""
+        active = key in self.caches
+        self.ready = deque(k for k in self.ready if k != key)
+        self._release(key)
+        return active
 
     def is_finished(self):
         return not self.caches
@@ -111,7 +139,10 @@ class Engine:
 
     def _execute(self, plan):
         start = perf_counter()
-        outputs = [self.model.forward(list(w.tokens), self.caches[w.request_id]) for w in plan]
+        outputs = (self.model.forward_batch([list(w.tokens) for w in plan],
+                                           [self.caches[w.request_id] for w in plan])
+                   if self.batched and plan else
+                   [self.model.forward(list(w.tokens), self.caches[w.request_id]) for w in plan])
         return outputs, dict(kind="execute", start=start, end=perf_counter(),
                              requests=[w.request_id for w in plan])
 
@@ -150,8 +181,7 @@ class Engine:
                               rolled_back=before + len(work.tokens) - len(cache),
                               cache_before=before, cache_after=len(cache), done=done))
             if done:
-                for state in (self.caches, self.rngs, self.drafts, self.budgets):
-                    state.pop(key, None)
+                self._release(key)
             else:
                 self.ready.append(key)
         self.batches.append(batch)
@@ -160,8 +190,8 @@ class Engine:
     def _abort(self):
         # The worker must have stopped before this runs; never resume partial KV.
         self.ready.clear()
-        for state in (self.caches, self.rngs, self.drafts, self.budgets):
-            state.clear()
+        for key in list(self.caches):
+            self._release(key)
         self.failed = True
 
     def step(self):

@@ -11,6 +11,9 @@
     "arrival_gap": 2,
     "seed": 7,
     "checkpoint": "checkpoints\\tiny-trained.npz",
+    "batched": false,
+    "kv_blocks": 0,
+    "block_size": 8,
     "json": "examples\\trained-inference.json"
   },
   "requests": [
@@ -1213,6 +1216,7 @@
   ],
   "equal_full_recompute": true,
   "caches_released": true,
+  "pool": null,
   "work": {
     "calls": 55,
     "projected_tokens": 265,

@@ -30,10 +30,8 @@ python -m unittest discover -s tests -v
 
 先删掉 `cache.offset`，观察绝对位置错位导致的失败。再增加第二层 attention，试验简单的 W+B 后缀规则为何不足；把每层的信息依赖画出来。不要把增加第二层后的失败“修复”为更宽的数值容差。
 
-## 5. 给晚到请求增加延迟目标
+## 5. 复核请求延迟与真实 batch
 
-从 `python infer.py --arrival-gap 1` 开始。当前 `add_request()` / `step()` 已允许轮次间提交请求；构造长 prompt 与连续晚到短请求，记录到达、首 token、结束的逻辑 step。比较 FIFO/round-robin 与 decode 优先策略，要求长请求仍能推进。
+直接运行 `python load_test.py --requests 8 --json service-load.json`。它启动 HTTP 服务、错峰提交请求、等待结果并对照完整重算。检查 queue time、TTFT、ITL 与实际发送时间；取消、超时、背压和故障恢复已在 `tests/test_systems.py` 中实现并测试。
 
-先用逻辑 step 解释公平性，再加入墙钟时间测量，并明确请求到达发生在哪一侧。用 `bench.py` 的固定工作负载保留基线；不要把逻辑 step 数当作毫秒。
-
-进阶：做真正的向量化 batch。此时要重新检查不同 padding、批次形状和浮点归约是否影响输出；独立 RNG 只是其中一部分。
+运行 `python systems.py`，检查 `[1,5,5]` 的 11 个有效 query 为什么产生 15 行投影。再运行 `bench.py --batched` 与默认路径，比较相同输出下的计时和 padding 工作。分页块引用、COW、LRU 驱逐、MLA 压缩均有同一命令可执行的数值案例，见[系统导读](systems.md)。

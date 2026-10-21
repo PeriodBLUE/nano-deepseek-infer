@@ -1,6 +1,6 @@
 # 从 loss 到文本 / From loss to text
 
-[中文 README](../README.md) · [English README](../README.en.md)
+[中文 README](../README.zh-CN.md) · [English README](../README.md)
 
 ## 运行完整链路
 

@@ -1,6 +1,6 @@
 # 从项目成果到 AI Infra 面试
 
-[English](career-map.en.md) · [README](../README.md)
+[English](career-map.en.md) · [README](../README.zh-CN.md)
 
 学完这个项目，你应该能独立完成三件事：**从训练权重跑出文本；解释每轮请求与缓存状态；用对照实验评估一个推理优化。** 面试中的自信来自这些可复现的成果，以及你对代码和结果的解释。
 
@@ -32,7 +32,9 @@
 | 可复现测试与故障定位 | ✓ | 新增一个能检出状态错误的测试，展示修复前失败、修复后通过 |
 | CUDA/Triton kernel 与 GPU profiling | ✗ | 将一个 attention 或 MoE 算子移植到 GPU；记录 profiler 与数值误差 |
 | 多卡通信与分布式运行 | ✗ | 把模拟 rank 改为进程，测量通信量、等待与热点 |
-| 在线服务与 SLO | ✗ | 增加 API、取消/超时、背压和负载生成器；测 TTFT/ITL 的 p50/p95/p99 |
+| 在线请求生命周期与延迟 | ✓ | HTTP 提交/轮询/取消、超时与背压测试、`load_test.py` 的 TTFT/ITL 百分位 |
+| 批量执行与物理 KV 所有权 | ✓ | ragged mask 对照、COW/驱逐测试和 `systems.py` 内存计数 |
+| 压缩 KV 方程 | ✓ | V2 MLA 展开/吸收结果一致，报告实际 latent cache 字节 |
 
 ## 一份能带去面试的项目包
 
@@ -40,7 +42,7 @@
 2. **状态证据**：运行 `infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json my-trace.json`，手算一轮草稿拒绝后的 cache 长度。
 3. **方程证据**：运行 `python -m nano_infer.dspark`，挑一个 graph bucket 边界，计算期望收益和耗时；修改最新置信度，观察总预算与请求分配如何变化。
 4. **性能证据**：运行 `bench.py --repeats 5 --json my-benchmark.json`，说明计时范围、工作负载、参考答案和误差来源。
-5. **个人贡献**：完成验收表里一项扩展，保留失败案例、修复、测试和测量记录。
+5. **个人贡献**：修改已有的 admission、batching 或缓存策略，保留失败案例、修复、测试和测量记录。
 
 简历可以据实组织成：“实现可训练的 NumPy attention + MoE 与 checkpoint 推理；实现带 token budget 的请求调度、KV 回滚与释放；用独立标量/穷举参考验证 DSpark head 和预算分配，并用固定工作负载分析推测解码的收益与成本。”写入你自己测得的数字，并准备解释每一项。
 

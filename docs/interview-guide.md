@@ -1,10 +1,12 @@
 # 从一次请求讲清 DeepInfer：系统设计与面试导读
 
-[中文](interview-guide.md) | [English](interview-guide.en.md) | [回到 README](../README.md)
+[中文](interview-guide.md) | [English](interview-guide.en.md) | [回到 README](../README.zh-CN.md)
 
 这份导读帮助你形成一套能画出来、跑出来、沿源码追下去的解释。建议每个主题都按 **问题 → 状态与数据流 → 正确性 → 成本 → 上游实现** 来讲。面试中的信心来自能够接住追问：改了什么、为什么正确、什么情况下不划算、如何测出来。
 
-文中的命令在仓库根目录执行。标为“本地”的机制可以在 NumPy 代码中运行；标为“上游”的部分需沿固定版本源码继续阅读。完成本地实验能建立推理引擎的系统视角；完整 DeepSeek 模型结构、设备 kernel 与多机服务需要后续专项学习。
+文中的命令在仓库根目录执行。标为“本地”的机制可以在 NumPy 代码中运行；标为“上游”的部分需沿固定版本源码继续阅读。本地实验把模型前向、请求状态、物理缓存、调度和 HTTP 延迟连成一条系统主线；阅读上游时再对应到具体模型版本和设备执行。
+
+批量执行、分页缓存、V2 MLA 和 HTTP 服务的完整实现见[系统导读](systems.md)。`--batched` 执行批量矩阵乘；`systems.py` 验证块共享与压缩方程；`load_test.py` 运行真实 HTTP 请求。
 
 ## 1. 先画系统边界
 
@@ -15,7 +17,7 @@
 | 模型 | token 如何变成隐藏状态、attention、专家输出和 logits | `TinyModel.forward`：单层 attention + top-2 MoE |
 | 推理引擎 | 哪些请求本轮执行、输入哪些 token、KV 如何更新、输出何时提交 | `Request`、`Work`、`Engine._plan/_execute/_finish` |
 | 设备执行 | 矩阵计算、attention kernel、分片通信、低精度与执行重叠 | NumPy 数值实验；EP/CP 在单进程模拟 |
-| 服务 | 接入、限流、跨副本路由、缓存服务、分离部署与监控 | 通过系统设计题练习；本仓库无网络服务 |
+| 服务 | 有界准入、等待、取消、超时与请求延迟 | `Service`、`serve.py`、`load_test.py` |
 
 下面是引擎的数据流。运行 `python infer.py` 可观察调度器如何将草稿验证与 prefill 放入同一执行计划；默认模型和设备执行仍是教学规模。
 
@@ -53,7 +55,7 @@ flowchart TD
 
 `infer.py` 在轮次之间调用 `add_request()`，让第二个请求晚到；`run()` 则是所有请求同时提交的便利接口。推测模式下，pending 和所有候选都占用 token budget；输出长度和 EOS 在提交时约束真正保留的历史。EOS 即使在接受的草稿中间，也必须立即截断输出。
 
-**常见追问：批处理等于并行计算吗？** 本项目把多个请求安排进同一计划，worker 内仍逐请求执行。生产引擎还要把请求打包为设备可执行的张量与元数据。上游从 [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) 进入，再跟到 [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp)。
+**常见追问：批处理等于并行计算吗？** 本项目保留逐请求参考路径；`--batched` 使用 `forward_batch()` 打包变长请求，执行真实批量矩阵乘，并用绝对位置、有效 query/key mask 隔离请求。见[数据打包与 mask](systems.md)。上游从 [`LLMEngine.step`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/deepinfer/engine/llm_engine.py) 进入，再跟到 [`scheduler.hpp`](https://github.com/deepseek-ai/DeepInfer/blob/774ce244b87cc0eb8d4b94ab9f5de2ab22049f01/csrc/engine/scheduler.hpp)。
 
 ## 3. 用张量讲清 prefill、decode 与 KV
 
@@ -72,7 +74,7 @@ flowchart TD
 
 **KV 占多少内存？** 对本项目，长度 T、宽度 d、每元素 b 字节，K/V 数组占 `2Tdb`；默认 float64 的 b=8。这不含权重、临时 score 或数组扩容峰值。普通多层多头模型要再按层、KV head 和 head dimension 计数；压缩 KV、SWA 和跨层共享则必须依据实际布局重新计算。
 
-**跨请求共享与请求内缓存有什么不同？** `demo prefix` 为公共前缀算一次 KV，然后复制独立分支。R 个请求共享 P 个 token，可少做 `(R−1)P` 次 token 投影，但仍复制内存。若扩展为分页共享，应处理块身份、引用计数、可写尾块与 copy-on-write、驱逐，以及模型/位置/前缀是否完全匹配；这些是后续实现任务。
+**跨请求共享与请求内缓存有什么不同？** `demo prefix` 为公共前缀算一次 KV，然后复制独立分支。R 个请求共享 P 个 token，可少做 `(R−1)P` 次 token 投影，但仍复制内存。`systems.py` 运行分页共享版本：块表、引用计数、copy-on-write、最长前缀索引与 LRU 驱逐均已实现。测试覆盖活跃分支跨快照驱逐后继续生成，详见[所有权推导](systems.md)。
 
 ## 4. 推测解码：一次验证为何能推进多个 token
 
@@ -219,3 +221,7 @@ Prefill 往往有更多 token 可并行，decode 的单请求 query 较短，但
 ## 训练、DSpark 与岗位能力
 
 [训练导读](training.md)串起梯度、权重与服务；[DSpark 方程](dspark.md)推导 Markov/confidence head 与双代际分配；[官方 JD 能力地图](career-map.md)帮助整理自己的实验与面试证据。
+
+## 11. 把系统链路完整讲出来
+
+运行 `systems.py`，推导 V2 MLA 权重吸收并验证物理 KV 共享。运行 `load_test.py`，沿 HTTP 请求观察等待、运行、取消、超时和结束，测量 queue time、TTFT 与 ITL。[系统导读](systems.md)逐项解释 mask、内存预留、协作超时和计时边界。
