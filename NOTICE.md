@@ -28,3 +28,5 @@ The implementation-design review also consulted [nanoGPT](https://github.com/kar
 Pinned revisions, reviewed files and design criteria are recorded in
 [docs/nano-design.md](docs/nano-design.md). The driving script, integrated scheduler
 and benchmark here are independent implementations, not source-code copies.
+
+The corpus in `data/`, analytic NumPy training, and bundled tiny checkpoint are original project artifacts under MIT. The checkpoint is trained with the configuration and data hashes in `examples/training.json`. DSpark equations were independently implemented from the pinned DeepInfer sources linked in [docs/dspark.md](docs/dspark.md).

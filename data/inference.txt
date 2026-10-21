@@ -1,0 +1,30 @@
+the cache stores keys and values. the model reads the prompt and predicts the next token.
+the scheduler shares a token budget. each request owns its cache and output tokens.
+the draft proposes tokens. the target checks the draft and accepts a matching prefix.
+the engine rolls back rejected tokens. the next step starts from the committed prefix.
+the router selects two experts. each expert computes a value and the router combines the results.
+the model learns from text. training updates the weights to predict the next character.
+the checkpoint stores trained weights. loading the checkpoint restores the same model.
+the cache saves repeated work. decoding reads old keys and values and appends new ones.
+the prompt is split into chunks. the scheduler leaves room for active decode requests.
+the test compares cached output with full recomputation. both paths produce the same tokens.
+the benchmark measures elapsed time. fewer calls can still mean more work for each call.
+the trace records each step. it shows the input tokens and the committed cache length.
+the model uses causal attention. each token can read itself and the tokens before it.
+the attention scores become probabilities. weighted values become the attention output.
+the engine finishes a request and releases its cache. other requests continue to run.
+the draft budget balances acceptance and verification cost. a longer draft is not always faster.
+the sampler uses a request seed. changing request order preserves each random stream.
+the prefix cache reuses prompt work. each branch gets independent mutable state.
+the expert placement balances load. copies of an expert share the same weights.
+the reference computes the answer directly. the optimized path must agree with the reference.
+the training loss measures next token error. the validation text checks held out predictions.
+the data is small and readable. the model learns short sentences about inference.
+the weights connect training to serving. the same forward pass drives both paths.
+the cache length tracks committed tokens. rejected proposals must leave no stale state.
+the request arrives while others are running. continuous batching admits it on the next step.
+the scheduler chooses work before execution. the engine commits results after execution.
+the output head maps hidden states to token scores. the largest score selects a greedy token.
+the confidence head estimates draft acceptance. the scheduler uses historical confidence to choose work.
+the first token comes from prefill. later tokens come from decode and verified drafts.
+the model projects queries keys and values. a causal mask prevents access to future tokens.

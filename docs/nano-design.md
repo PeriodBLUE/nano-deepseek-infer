@@ -37,9 +37,9 @@ infer.py
 
 ### 保持模型小，保持问题真实
 
-随机单层 attention + MoE 足以让因果性、KV 生命周期、草稿回滚、专家副本和分片归一化产生真实的数值约束。它让入门实验无需模型下载，但不提供语言能力；因此本项目的第一结果是可解释的状态轨迹和正确性检查，而不是聊天演示。
+单层 attention + MoE 同时承担训练与推理：`training.py` 显式反向传播，`train.py` 保存权重并重载生成，`infer.py` 用同一前向执行缓存和推测解码。种子初始化保留给固定数值实验；随仓库训练权重用于文本生成。
 
-完整 V4 架构、训练、预训练权重加载、分页缓存、设备 kernel 和分布式通信，各自都有独立复杂度。这里通过[上游源码地图](upstream-map.md)连接这些方向，避免把近似实现标成完整复现。当前 worker 仍逐请求计算；调度批次不等于向量化模型 batch。
+完整 V4 架构、分页缓存、设备 kernel 和分布式通信，各自都有独立复杂度。这里通过[上游源码地图](upstream-map.md)连接这些方向，避免把近似实现标成完整复现。当前 worker 仍逐请求计算；调度批次不等于向量化模型 batch。
 
 ### 当前检查过的参考项目
 
@@ -64,7 +64,7 @@ Arrivals in this script use logical steps, not network time. Dynamic admission i
 
 `bench.py` defines a fixed workload and checks every measured output against full-prefix recomputation. It warms up each policy, rotates order, retains raw samples and records environment/source metadata. Timing includes admission through output commit but excludes model/request construction, the reference, printing and file writes. Its p95 is a sample quantile of complete CPU runs, not a production per-request latency SLO. Threading or speculation may lose; no speed threshold is imposed.
 
-The model stays small enough to inspect. Random weights provide real numerical constraints for cache state, causal verification and parallel reductions, while avoiding downloads. They do not provide language capability. Training, real checkpoints, V4-specific architecture, paging, device kernels and distributed communication are further areas connected through the [upstream map](upstream-map.md). The local worker still computes requests individually.
+The same small model supports explicit NumPy backprop, checkpoint save/reload and text generation through the engine. Seeded initialization remains useful for fixed numerical fixtures. DSpark heads and two-generation scheduling have independent equation references. V4 architecture, paging, device kernels and distributed communication connect through the [upstream map](upstream-map.md); the local worker computes requests individually.
 
 The table above records the reviewed projects, revisions and observed GitHub stars on 2026-10-21. nanoGPT is now marked deprecated in favor of nanochat, but remains useful for studying an explicit core loop. nanochat exposes an end-to-end run; nano-vLLM exposes a real engine lifecycle; modded-nanogpt defines a fixed quality target and timing scope. These are source reviews, not locally reproduced training results or cross-project performance rankings.
 

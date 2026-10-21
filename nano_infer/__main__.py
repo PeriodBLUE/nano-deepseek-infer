@@ -5,6 +5,7 @@ from pathlib import Path
 from .labs import LABS
 from .model import TinyModel, decode, encode, greedy
 from .verification import shape_tour, verification_report
+from .training import load_checkpoint
 
 
 def main():
@@ -18,16 +19,18 @@ def main():
                             ("verify", "check an independent toy oracle and emit evidence")):
         command = sub.add_parser(name, help=help_text)
         command.add_argument("--json", type=Path, help="write the full result")
-    generate = sub.add_parser("generate", help="generate toy text with random weights")
+    generate = sub.add_parser("generate", help="generate text from a trained checkpoint or seeded weights")
+    generate.add_argument("--checkpoint", type=Path)
     generate.add_argument("--prompt", default="nano")
     generate.add_argument("--max-tokens", type=int, default=24)
     args = parser.parse_args()
     if args.command == "generate":
         try:
-            tokens = greedy(TinyModel(), encode(args.prompt), args.max_tokens)
+            model = load_checkpoint(args.checkpoint) if args.checkpoint else TinyModel()
+            tokens = greedy(model, encode(args.prompt), args.max_tokens)
         except ValueError as exc:
             parser.error(str(exc))
-        print("Random toy weights; output has no learned language meaning.")
+        print(f"Model: {args.checkpoint or 'seeded initialization'}")
         print(args.prompt + decode(tokens))
         return
     if args.command == "tour":

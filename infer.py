@@ -3,7 +3,6 @@
     python infer.py
     python infer.py --prompt "nano" --prompt "cache" --draft-tokens 4
 
-The random model is a numerical test vehicle, not a language model checkpoint.
 Every run checks its outputs against full-prefix greedy recomputation.
 """
 import argparse
@@ -12,6 +11,7 @@ from pathlib import Path
 
 from nano_infer.engine import Engine, Request
 from nano_infer.model import TinyModel, decode, encode, greedy
+from nano_infer.training import load_checkpoint
 
 
 def main():
@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--prefill-chunk", type=int, default=4)
     parser.add_argument("--arrival-gap", type=int, default=2, help="logical steps between arrivals")
     parser.add_argument("--seed", type=int, default=7, help="model weight seed")
+    parser.add_argument("--checkpoint", type=Path, help="load trained NumPy weights")
     parser.add_argument("--json", type=Path, help="save inputs, outputs and all state transitions")
     args = parser.parse_args()
     try:
@@ -32,13 +33,14 @@ def main():
         prompts = args.prompt or ["nano", "deepseek inference"]
         requests = [Request(f"r{i}", encode(text), args.max_tokens, temperature=0)
                     for i, text in enumerate(prompts)]
-        model = TinyModel(seed=args.seed)
+        make_model = lambda: load_checkpoint(args.checkpoint) if args.checkpoint else TinyModel(seed=args.seed)
+        model = make_model()
         engine = Engine(model, token_budget=args.token_budget, prefill_chunk=args.prefill_chunk,
                         max_draft=args.draft_tokens, adaptive=args.adaptive)
     except ValueError as exc:
         parser.error(str(exc))
 
-    print("Random weights: inspect execution state, not language quality.")
+    print(f"Model: {args.checkpoint or 'seeded initialization'}")
     print("step request phase    input draft accept rollback cache     output")
     tick, next_request = 0, 0
     arrivals, trace = [], []
@@ -64,11 +66,11 @@ def main():
 
     # Deliberately slower, uncached baseline; outside any performance measurement.
     for req, prompt in zip(requests, prompts):
-        expected = greedy(TinyModel(seed=args.seed), req.prompt, req.max_tokens, cached=False)
+        expected = greedy(make_model(), req.prompt, req.max_tokens, cached=False)
         if req.output != expected:
             raise AssertionError(f"{req.request_id}: output differs from full recomputation")
         print(f"{req.request_id}: {prompt!r} -> {decode(req.output)!r}")
-    report = dict(config=vars(args) | {"json": str(args.json) if args.json else None},
+    report = dict(config={k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
                   requests=[dict(id=r.request_id, prompt=r.prompt, output=r.output) for r in requests],
                   arrivals=arrivals, trace=trace, equal_full_recompute=True,
                   caches_released=not engine.caches,

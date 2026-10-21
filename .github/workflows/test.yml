@@ -16,6 +16,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install -e .
       - run: python -m unittest discover -s tests -v
+      - run: python train.py --steps 20 --width 12 --context 16 --batch-size 2
+      - run: python infer.py --checkpoint artifacts/tiny-trained.npz --prompt "the model " --max-tokens 24 --json trained-smoke.json
+      - run: python infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json trained-inference.json
+      - run: python -m nano_infer.dspark --json dspark.json
       - run: python infer.py --json inference.json
       - run: python bench.py --repeats 3 --json benchmark.json
       - run: python -m nano_infer demo all --json lesson-results.json
@@ -30,3 +34,7 @@ jobs:
             verification.json
             inference.json
             benchmark.json
+            dspark.json
+            trained-inference.json
+            trained-smoke.json
+            artifacts/training.json

@@ -1,0 +1,349 @@
+{
+  "config": {
+    "steps": 6000,
+    "width": 64,
+    "context": 96,
+    "batch_size": 8,
+    "learning_rate": 0.002,
+    "seed": 7,
+    "data": "data\\inference.txt",
+    "validation": "data\\validation.txt",
+    "out": "checkpoints\\tiny-trained.npz",
+    "report": "examples\\training.json"
+  },
+  "initial_loss": {
+    "train": 3.894746125336976,
+    "validation": 3.925652725905001
+  },
+  "final_loss": {
+    "train": 0.14991371573727919,
+    "validation": 3.2789720870809553
+  },
+  "data_sha256": "13c6cc6164c04a4cc9a4afd4293d58b58750254a64176cabab9bfb96d4207da7",
+  "validation_sha256": "df5119da3f06ffd56c325e341601c7fe10c7527da3458b1317c40bd51e2e2953",
+  "parameters": 87936,
+  "elapsed_seconds": 395.1262945999915,
+  "history": [
+    {
+      "step": 1,
+      "loss": 3.8803602968772033,
+      "gradient_norm": 0.9067879422681198
+    },
+    {
+      "step": 100,
+      "loss": 2.1112632548282657,
+      "gradient_norm": 0.45942617458505947
+    },
+    {
+      "step": 200,
+      "loss": 2.0467494961536645,
+      "gradient_norm": 0.5419793897075615
+    },
+    {
+      "step": 300,
+      "loss": 1.9282911047553697,
+      "gradient_norm": 0.6033364397261048
+    },
+    {
+      "step": 400,
+      "loss": 1.892446027521679,
+      "gradient_norm": 0.6383007392670368
+    },
+    {
+      "step": 500,
+      "loss": 1.7439726504342634,
+      "gradient_norm": 0.5921288041951213
+    },
+    {
+      "step": 600,
+      "loss": 1.7216464987457052,
+      "gradient_norm": 0.9608105276010142
+    },
+    {
+      "step": 700,
+      "loss": 1.6022234466088243,
+      "gradient_norm": 0.859317094925835
+    },
+    {
+      "step": 800,
+      "loss": 1.4108523942464046,
+      "gradient_norm": 1.4636822883548173
+    },
+    {
+      "step": 900,
+      "loss": 1.2785881885369728,
+      "gradient_norm": 1.814699827959001
+    },
+    {
+      "step": 1000,
+      "loss": 1.1491910826785117,
+      "gradient_norm": 2.0927185155729457
+    },
+    {
+      "step": 1100,
+      "loss": 0.9170604604925696,
+      "gradient_norm": 2.0018709388981364
+    },
+    {
+      "step": 1200,
+      "loss": 0.8366658922036745,
+      "gradient_norm": 2.179359476583258
+    },
+    {
+      "step": 1300,
+      "loss": 0.7852875965057672,
+      "gradient_norm": 6.244978001204688
+    },
+    {
+      "step": 1400,
+      "loss": 0.6878610693281931,
+      "gradient_norm": 4.019453776043961
+    },
+    {
+      "step": 1500,
+      "loss": 0.6149900758807245,
+      "gradient_norm": 2.7907308535075246
+    },
+    {
+      "step": 1600,
+      "loss": 0.5103187165823108,
+      "gradient_norm": 3.8502675153182833
+    },
+    {
+      "step": 1700,
+      "loss": 0.5427027980072093,
+      "gradient_norm": 5.103432203225559
+    },
+    {
+      "step": 1800,
+      "loss": 0.4417840472721644,
+      "gradient_norm": 5.061931280131081
+    },
+    {
+      "step": 1900,
+      "loss": 0.4718225928397454,
+      "gradient_norm": 6.86599281415866
+    },
+    {
+      "step": 2000,
+      "loss": 0.39158931109012,
+      "gradient_norm": 4.904241466141876
+    },
+    {
+      "step": 2100,
+      "loss": 0.5122458053451241,
+      "gradient_norm": 4.800089072347665
+    },
+    {
+      "step": 2200,
+      "loss": 0.4545956289471513,
+      "gradient_norm": 5.411548201059516
+    },
+    {
+      "step": 2300,
+      "loss": 0.377862517969004,
+      "gradient_norm": 5.214510900958015
+    },
+    {
+      "step": 2400,
+      "loss": 0.38433351265199517,
+      "gradient_norm": 4.7280458183081375
+    },
+    {
+      "step": 2500,
+      "loss": 0.35165061820566673,
+      "gradient_norm": 6.643006356921455
+    },
+    {
+      "step": 2600,
+      "loss": 0.3558798353317678,
+      "gradient_norm": 5.023433144306871
+    },
+    {
+      "step": 2700,
+      "loss": 0.2915406396378974,
+      "gradient_norm": 4.269610658431836
+    },
+    {
+      "step": 2800,
+      "loss": 0.2523173352496459,
+      "gradient_norm": 2.6958442643348564
+    },
+    {
+      "step": 2900,
+      "loss": 0.27386059549804065,
+      "gradient_norm": 4.023971756768075
+    },
+    {
+      "step": 3000,
+      "loss": 0.23851553146682247,
+      "gradient_norm": 3.0569168348266107
+    },
+    {
+      "step": 3100,
+      "loss": 0.30204834223497246,
+      "gradient_norm": 3.9570563345556353
+    },
+    {
+      "step": 3200,
+      "loss": 0.26673874960384797,
+      "gradient_norm": 5.409841026501267
+    },
+    {
+      "step": 3300,
+      "loss": 0.23981095678997824,
+      "gradient_norm": 4.466849367184466
+    },
+    {
+      "step": 3400,
+      "loss": 0.26188591514840986,
+      "gradient_norm": 4.20013319139813
+    },
+    {
+      "step": 3500,
+      "loss": 0.26864063272529304,
+      "gradient_norm": 7.866968410516287
+    },
+    {
+      "step": 3600,
+      "loss": 0.2998345304652965,
+      "gradient_norm": 3.1534252782469414
+    },
+    {
+      "step": 3700,
+      "loss": 0.21778842134223922,
+      "gradient_norm": 6.719047659631105
+    },
+    {
+      "step": 3800,
+      "loss": 0.23297633666038295,
+      "gradient_norm": 7.177738176435056
+    },
+    {
+      "step": 3900,
+      "loss": 0.21801097959359214,
+      "gradient_norm": 4.726648845442509
+    },
+    {
+      "step": 4000,
+      "loss": 0.2003571754253752,
+      "gradient_norm": 2.789039308321532
+    },
+    {
+      "step": 4100,
+      "loss": 0.21675185074203043,
+      "gradient_norm": 7.367128118282388
+    },
+    {
+      "step": 4200,
+      "loss": 0.1915564873854226,
+      "gradient_norm": 3.932651526138614
+    },
+    {
+      "step": 4300,
+      "loss": 0.1912083726974192,
+      "gradient_norm": 4.777451415799022
+    },
+    {
+      "step": 4400,
+      "loss": 0.20098894325271655,
+      "gradient_norm": 3.1929471501816273
+    },
+    {
+      "step": 4500,
+      "loss": 0.26084018123345665,
+      "gradient_norm": 2.573420320193495
+    },
+    {
+      "step": 4600,
+      "loss": 0.15750071730888268,
+      "gradient_norm": 6.155440617400001
+    },
+    {
+      "step": 4700,
+      "loss": 0.1929137168480162,
+      "gradient_norm": 4.303977149376914
+    },
+    {
+      "step": 4800,
+      "loss": 0.25693468634773836,
+      "gradient_norm": 5.644258489044101
+    },
+    {
+      "step": 4900,
+      "loss": 0.15542043436611616,
+      "gradient_norm": 2.54129681760578
+    },
+    {
+      "step": 5000,
+      "loss": 0.15038470956907188,
+      "gradient_norm": 2.192353162260411
+    },
+    {
+      "step": 5100,
+      "loss": 0.18636424748816408,
+      "gradient_norm": 4.230876935304376
+    },
+    {
+      "step": 5200,
+      "loss": 0.1793536633050656,
+      "gradient_norm": 5.543490473501997
+    },
+    {
+      "step": 5300,
+      "loss": 0.1762164246238572,
+      "gradient_norm": 4.842540567945782
+    },
+    {
+      "step": 5400,
+      "loss": 0.2053647662587177,
+      "gradient_norm": 5.043019238546368
+    },
+    {
+      "step": 5500,
+      "loss": 0.17530728606979964,
+      "gradient_norm": 6.857905798663932
+    },
+    {
+      "step": 5600,
+      "loss": 0.2036242895735809,
+      "gradient_norm": 5.1343888634354755
+    },
+    {
+      "step": 5700,
+      "loss": 0.17322681667812234,
+      "gradient_norm": 4.989268059276951
+    },
+    {
+      "step": 5800,
+      "loss": 0.17825614092633427,
+      "gradient_norm": 6.844096987059542
+    },
+    {
+      "step": 5900,
+      "loss": 0.1981460255188231,
+      "gradient_norm": 4.478505073753739
+    },
+    {
+      "step": 6000,
+      "loss": 0.11303071216838467,
+      "gradient_norm": 2.9087994601604605
+    }
+  ],
+  "samples": [
+    {
+      "prompt": "the cache ",
+      "generated": "sarepte amexewor ts. the expert computes a value and the router combines the results. the moafoafoaf"
+    },
+    {
+      "prompt": "the model ",
+      "generated": "learns from text. training updates the weights to predict the next character. the checkpommingthe po"
+    },
+    {
+      "prompt": "the draft ",
+      "generated": "and aces tivepewaler es ons ilof cofio an and experouter ter the selectshecto wo fir thexpr erompr e"
+    }
+  ],
+  "checkpoint_sha256": "4b17a0e1440b33c655f12381395c8cdb8192760b56f53faaa5fad6e99d532259",
+  "checkpoint_roundtrip_equal": true
+}

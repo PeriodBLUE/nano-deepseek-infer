@@ -215,3 +215,7 @@ Mark these ✓ or ✗ after checking yourself:
 | □ | Follow one upstream entry | Trace the call chain and distinguish executed evidence from source inspection |
 
 Accurately distinguish what you ran and analyzed, what you independently implemented and what you read. Identifying an unimplemented component and proposing a falsifiable next step is also part of system-design competence.
+
+## Training, DSpark and job requirements
+
+[Training walkthrough](training.md) connects gradients, weights and serving; [DSpark equations](dspark.md) derive Markov/confidence heads and generation-separated allocation. Use the [official JD mapping](career-map.en.md) to organize your own experiments and interview evidence.

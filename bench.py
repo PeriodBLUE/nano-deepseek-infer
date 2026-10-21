@@ -19,15 +19,19 @@ from time import perf_counter
 import numpy as np
 
 from nano_infer.engine import Engine, Request
-from nano_infer.model import VOCAB, TinyModel, greedy
+from nano_infer.model import VOCAB, TinyModel, encode, greedy
+from nano_infer.training import load_checkpoint
 
 
-def benchmark(repeats=3, max_tokens=24, seed=7):
+def benchmark(repeats=3, max_tokens=24, seed=7, checkpoint=None):
     if repeats < 1 or max_tokens < 1:
         raise ValueError("positive repeats and output length required")
     rng = np.random.default_rng(2026)
     prompts = [rng.integers(0, len(VOCAB), size=n).tolist() for n in (4, 13, 29, 53)]
-    oracle = {f"r{i}": greedy(TinyModel(seed), p, max_tokens, cached=False)
+    if checkpoint:
+        prompts = [encode(p) for p in ("the model ", "the cache ", "the draft ", "the scheduler ")]
+    make_model = lambda: load_checkpoint(checkpoint) if checkpoint else TinyModel(seed)
+    oracle = {f"r{i}": greedy(make_model(), p, max_tokens, cached=False)
               for i, p in enumerate(prompts)}
     policies = dict(cached=dict(max_draft=0),
                     fixed_draft=dict(max_draft=4),
@@ -38,7 +42,7 @@ def benchmark(repeats=3, max_tokens=24, seed=7):
     def trial(name):
         policy = policies[name].copy()
         pipelined = policy.pop("pipelined", False)
-        model = TinyModel(seed)
+        model = make_model()
         engine = Engine(model, token_budget=12, max_batch=3, prefill_chunk=4, **policy)
         requests = [Request(f"r{i}", p, max_tokens, temperature=0) for i, p in enumerate(prompts)]
         start = perf_counter()
@@ -81,6 +85,7 @@ def benchmark(repeats=3, max_tokens=24, seed=7):
                                  thread_env={k: os.environ.get(k) for k in
                                              ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")}),
                 workload=dict(seed=seed, prompts=prompts, max_tokens=max_tokens,
+                              checkpoint_sha256=hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest() if checkpoint else None,
                               output_tokens=output_tokens, token_budget=12, max_batch=3,
                               prefill_chunk=4, repeats=repeats, warmups_per_policy=1),
                 source_sha256={str(p.relative_to(root)).replace("\\", "/"):
@@ -94,10 +99,11 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-tokens", type=int, default=24)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
     try:
-        report = benchmark(args.repeats, args.max_tokens, args.seed)
+        report = benchmark(args.repeats, args.max_tokens, args.seed, args.checkpoint)
     except ValueError as exc:
         parser.error(str(exc))
     print("CPU only | identical workload | full-recompute outputs checked | warmup excluded")

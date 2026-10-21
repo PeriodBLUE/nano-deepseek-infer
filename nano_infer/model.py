@@ -1,7 +1,7 @@
 """One causal attention layer + top-2 MoE, with explicit transactional KV state.
 
-Random weights deliberately avoid a checkpoint dependency. This is a numerical
-test vehicle, not a trained DeepSeek model. Float64 makes comparisons readable.
+Weights can be trained with training.py and restored from a native checkpoint.
+Float64 makes numerical comparisons readable.
 """
 from dataclasses import dataclass, field
 

@@ -1,0 +1,4 @@
+the cache keeps keys and values for decoding. the model predicts a token from the prompt.
+the scheduler gives each request a token budget. the engine checks the draft before committing tokens.
+the router combines expert outputs. the benchmark records time and work for each policy.
+the checkpoint contains the model weights. the test checks that loading preserves predictions.

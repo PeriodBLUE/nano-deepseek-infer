@@ -1,0 +1,1221 @@
+{
+  "config": {
+    "prompt": [
+      "the model "
+    ],
+    "max_tokens": 64,
+    "draft_tokens": 4,
+    "adaptive": false,
+    "token_budget": 8,
+    "prefill_chunk": 4,
+    "arrival_gap": 2,
+    "seed": 7,
+    "checkpoint": "checkpoints\\tiny-trained.npz",
+    "json": "examples\\trained-inference.json"
+  },
+  "requests": [
+    {
+      "id": "r0",
+      "prompt": [
+        20,
+        8,
+        5,
+        0,
+        13,
+        15,
+        4,
+        5,
+        12,
+        0
+      ],
+      "output": [
+        12,
+        5,
+        1,
+        18,
+        14,
+        19,
+        0,
+        6,
+        18,
+        15,
+        13,
+        0,
+        20,
+        5,
+        24,
+        20,
+        37,
+        0,
+        20,
+        18,
+        1,
+        9,
+        14,
+        9,
+        14,
+        7,
+        0,
+        21,
+        16,
+        4,
+        1,
+        20,
+        5,
+        19,
+        0,
+        20,
+        8,
+        5,
+        0,
+        23,
+        5,
+        9,
+        7,
+        8,
+        20,
+        19,
+        0,
+        20,
+        15,
+        0,
+        16,
+        18,
+        5,
+        4,
+        9,
+        3,
+        20,
+        0,
+        20,
+        8,
+        5,
+        0,
+        14,
+        5
+      ]
+    }
+  ],
+  "arrivals": [
+    {
+      "step": 0,
+      "request": "r0"
+    }
+  ],
+  "trace": [
+    {
+      "step": 0,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "prefill",
+          "input_tokens": 4,
+          "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 0,
+          "cache_after": 4,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 1,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "prefill",
+          "input_tokens": 4,
+          "emitted": null,
+          "emitted_tokens": [],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 4,
+          "cache_after": 8,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "prefill",
+          "input_tokens": 2,
+          "emitted": 12,
+          "emitted_tokens": [
+            12
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 8,
+          "cache_after": 10,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 10,
+          "cache_after": 11,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 1,
+          "emitted_tokens": [
+            1
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 11,
+          "cache_after": 12,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 18,
+          "emitted_tokens": [
+            18
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 12,
+          "cache_after": 13,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 14,
+          "emitted_tokens": [
+            14
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 13,
+          "cache_after": 14,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 19,
+          "emitted_tokens": [
+            19
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 14,
+          "cache_after": 15,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 15,
+          "cache_after": 16,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 6,
+          "emitted_tokens": [
+            6
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 16,
+          "cache_after": 17,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 10,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 18,
+          "emitted_tokens": [
+            18
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 17,
+          "cache_after": 18,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 11,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 15,
+          "emitted_tokens": [
+            15
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 18,
+          "cache_after": 19,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 12,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 13,
+          "emitted_tokens": [
+            13
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 19,
+          "cache_after": 20,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 13,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 20,
+          "cache_after": 21,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 14,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 21,
+          "cache_after": 22,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 15,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 22,
+          "cache_after": 23,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 16,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 24,
+          "emitted_tokens": [
+            24
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 23,
+          "cache_after": 24,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 17,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 24,
+          "cache_after": 25,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 18,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 37,
+          "emitted_tokens": [
+            37
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 25,
+          "cache_after": 26,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 19,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 26,
+          "cache_after": 27,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 20,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 27,
+          "cache_after": 28,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 21,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 18,
+          "emitted_tokens": [
+            18
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 28,
+          "cache_after": 29,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 22,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 1,
+          "emitted_tokens": [
+            1
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 29,
+          "cache_after": 30,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 23,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 9,
+          "emitted_tokens": [
+            9
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 30,
+          "cache_after": 31,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 24,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 14,
+          "emitted_tokens": [
+            14
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 31,
+          "cache_after": 32,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 25,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 9,
+          "emitted_tokens": [
+            9
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 32,
+          "cache_after": 33,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 26,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 7,
+          "emitted_tokens": [
+            14,
+            7
+          ],
+          "proposed": 4,
+          "accepted": 1,
+          "rolled_back": 3,
+          "cache_before": 33,
+          "cache_after": 35,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 27,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 35,
+          "cache_after": 36,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 28,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 21,
+          "emitted_tokens": [
+            21
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 36,
+          "cache_after": 37,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 29,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 16,
+          "emitted_tokens": [
+            16
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 37,
+          "cache_after": 38,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 30,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 4,
+          "emitted_tokens": [
+            4
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 38,
+          "cache_after": 39,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 31,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 1,
+          "emitted_tokens": [
+            1
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 39,
+          "cache_after": 40,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 32,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 40,
+          "cache_after": 41,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 33,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 19,
+          "emitted_tokens": [
+            5,
+            19
+          ],
+          "proposed": 4,
+          "accepted": 1,
+          "rolled_back": 3,
+          "cache_before": 41,
+          "cache_after": 43,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 34,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 8,
+          "emitted_tokens": [
+            0,
+            20,
+            8
+          ],
+          "proposed": 4,
+          "accepted": 2,
+          "rolled_back": 2,
+          "cache_before": 43,
+          "cache_after": 46,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 35,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 23,
+          "emitted_tokens": [
+            5,
+            0,
+            23
+          ],
+          "proposed": 4,
+          "accepted": 2,
+          "rolled_back": 2,
+          "cache_before": 46,
+          "cache_after": 49,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 36,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 49,
+          "cache_after": 50,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 37,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 9,
+          "emitted_tokens": [
+            9
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 50,
+          "cache_after": 51,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 38,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 7,
+          "emitted_tokens": [
+            7
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 51,
+          "cache_after": 52,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 39,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 8,
+          "emitted_tokens": [
+            8
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 52,
+          "cache_after": 53,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 40,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 53,
+          "cache_after": 54,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 41,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 19,
+          "emitted_tokens": [
+            19
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 54,
+          "cache_after": 55,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 42,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 15,
+          "emitted_tokens": [
+            0,
+            20,
+            15
+          ],
+          "proposed": 4,
+          "accepted": 2,
+          "rolled_back": 2,
+          "cache_before": 55,
+          "cache_after": 58,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 43,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 58,
+          "cache_after": 59,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 44,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 16,
+          "emitted_tokens": [
+            16
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 59,
+          "cache_after": 60,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 45,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 18,
+          "emitted_tokens": [
+            18
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 60,
+          "cache_after": 61,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 46,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 61,
+          "cache_after": 62,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 47,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 4,
+          "emitted_tokens": [
+            4
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 62,
+          "cache_after": 63,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 48,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 9,
+          "emitted_tokens": [
+            9
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 63,
+          "cache_after": 64,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 49,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 3,
+          "emitted_tokens": [
+            3
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 64,
+          "cache_after": 65,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 50,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 20,
+          "emitted_tokens": [
+            20
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 65,
+          "cache_after": 66,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 51,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 0,
+          "emitted_tokens": [
+            0
+          ],
+          "proposed": 4,
+          "accepted": 0,
+          "rolled_back": 4,
+          "cache_before": 66,
+          "cache_after": 67,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 52,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 5,
+          "emitted": 8,
+          "emitted_tokens": [
+            20,
+            8
+          ],
+          "proposed": 4,
+          "accepted": 1,
+          "rolled_back": 3,
+          "cache_before": 67,
+          "cache_after": 69,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 53,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 4,
+          "emitted": 14,
+          "emitted_tokens": [
+            5,
+            0,
+            14
+          ],
+          "proposed": 3,
+          "accepted": 2,
+          "rolled_back": 1,
+          "cache_before": 69,
+          "cache_after": 72,
+          "done": false
+        }
+      ]
+    },
+    {
+      "step": 54,
+      "batch": [
+        {
+          "request": "r0",
+          "phase": "verify",
+          "input_tokens": 1,
+          "emitted": 5,
+          "emitted_tokens": [
+            5
+          ],
+          "proposed": 0,
+          "accepted": 0,
+          "rolled_back": 0,
+          "cache_before": 72,
+          "cache_after": 73,
+          "done": true
+        }
+      ]
+    }
+  ],
+  "equal_full_recompute": true,
+  "caches_released": true,
+  "work": {
+    "calls": 55,
+    "projected_tokens": 265,
+    "score_elements": 10983
+  }
+}

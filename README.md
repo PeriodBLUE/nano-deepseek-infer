@@ -6,7 +6,7 @@
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
-面向初学者与推理工程求职者 · 中英双语 · 仅 NumPy · 无需 GPU 或模型权重
+面向初学者与推理工程求职者 · 中英双语 · 仅 NumPy · CPU 训练与文本生成
 
 为什么生成一个 token 要读历史 KV？为什么多猜几个 token 有时反而更慢？为什么复制专家可以缓解负载，却不能随意更改路由结果？
 
@@ -14,7 +14,6 @@
 
 [开始运行](#三分钟运行) · [系统设计与面试导读](docs/interview-guide.md) · [DeepInfer 源码地图](docs/upstream-map.md) · [相关项目对比](#能力与资源矩阵)
 
-> 独立教学项目，非 DeepSeek 官方项目。模型是随机初始化的单层 attention + top-2 MoE，输出没有学习过的语言含义。本项目复现可验证的机制与不变量，不加载 DeepSeek 权重，也不宣称复现其性能。
 
 ## 三分钟运行
 
@@ -37,6 +36,7 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install -e .
+python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64
 python infer.py
 ```
 
@@ -54,7 +54,7 @@ step request phase    input draft accept rollback cache     output
    3 r1      prefill      3     0      0        0 3->6      ''
 ```
 
-每次运行结束都检查输出等价与缓存释放。字符没有语言含义，读者要观察的是状态怎样变化。
+每次运行结束都检查输出等价与缓存释放。上面的固定种子示例便于观察状态；下面的训练权重路径使用同一套引擎生成文本。
 
 **改一个参数，验证一个判断：**
 
@@ -81,17 +81,49 @@ python -m nano_infer tour --json shape-tour.json
 python -m nano_infer generate --prompt "nano" --max-tokens 24
 ```
 
-`generate` 的字符 tokenizer 仅支持小写英文字母、数字、空格及少量标点。中文说明不意味着这个随机小模型支持中文生成。安装后也可使用 `nano-infer` 命令。
+`generate` 的字符 tokenizer 仅支持小写英文字母、数字、空格及少量标点。训练语料为英文。安装后也可使用 `nano-infer` 命令。
+
+## 训练权重，再用推理引擎生成文本
+
+仓库附带 CPU 训练得到的 87,936 参数 attention + top-2 MoE 权重，可以直接加载；也可以从零训练全部参数，读懂每一步 NumPy 反向传播与 Adam 更新：
+
+```bash
+python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64
+python infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json trained-trace.json
+python train.py
+python bench.py --checkpoint checkpoints/tiny-trained.npz --repeats 5 --json trained-benchmark.json
+python infer.py --checkpoint artifacts/tiny-trained.npz --prompt "the model " --max-tokens 64
+python -m nano_infer.dspark --json dspark.json
+```
+
+[`train.py`](train.py) 串起 next-character loss、causal attention/MoE 梯度、裁剪、Adam、留出集评估、保存/重载与生成。[`data/`](data/) 提供原创英文训练文本及独立留出文本。[训练记录](examples/training.json)、[训练权重推理轨迹](examples/trained-inference.json)与[训练权重基准](examples/trained-benchmark.json)可直接查看。训练记录包含配置、loss、生成样本与数据/权重摘要；[训练导读](docs/training.md) 解释张量、路由梯度与评估。字符词表支持小写英文及部分标点。
+
+**DSpark 同样可以运行：** [方程实验](docs/dspark.md) 覆盖特征投影/RMSNorm、Markov logits、归一化前置信度、逐步温度和双代际调度。24 组 head 张量与独立标量方程对照，80 组预算与分配案例通过穷举参考验证。每个候选预算的预期 token、graph bucket、耗时和吞吐都可查看。
 
 ## 这个项目能帮你掌握什么
 
 | 学习优势 | 你能具体做到 | 从哪里开始 |
 |---|---|---|
+| **从训练到服务的完整链路** | 推导梯度、训练权重、重载 checkpoint，经同一缓存/调度器生成文本 | [`train.py`](train.py) · [训练导读](docs/training.md) |
+| **DSpark 从公式到决策** | 解释 norm 前置信度、Markov 递推与代际隔离的预算选择 | [DSpark 实验](docs/dspark.md) · [独立参考](nano_infer/dspark_reference.py) |
 | **一条完整的请求主线** | 改动请求到达时机与草稿预算，观察同一调度器中的 prefill、验证、回滚和结束 | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
 | **每个概念都能看见** | 对照 prefill / decode 的实际 shape，逐轮检查草稿接受、KV 回滚与批次变化 | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
 | **优化有可检验的理由** | 说明改变执行方式后哪些输出必须不变，定位因果 mask、位置编码、缓存分支的错误 | `verify` · [正确性检查](docs/interview-guide.md#7-如何证明优化没有改变答案) |
 | **性能判断有收益，也有成本** | 比较同输入、同输出下的 CPU 耗时、调用次数与投影工作，判断优化何时不划算 | [`bench.py`](bench.py) · [性能分析](docs/interview-guide.md#8-面试中的性能问题怎么回答) |
 | **能从小模型走回生产源码** | 找到 DeepInfer 的调度、EPLB、DSpark、YoCo 和 sampler 入口，指出教学机制到生产实现还差什么 | [源码地图](docs/upstream-map.md) · [进阶路线](docs/interview-guide.md#9-走向-deepinfer-与完整模型实现) |
+
+## 学完后，你能带着哪些成果去面试
+
+你可以从 loss 一直解释到训练权重生成文本；逐轮推导 prefill/decode 与 KV 所有权；讲清 DSpark 的 head 和预算公式；用控制变量实验说明一次推理优化的收益与成本。每项收获都有代码入口、运行命令与结果记录。
+
+| 调研的官方岗位 | 本项目对应练习 | 可以展示的成果 |
+|---|---|---|
+| Anthropic — Inference Engine | batching、缓存状态、确定性 | 到达/回滚/释放 trace 与故障回归测试 |
+| OpenAI — Inference Performance Optimization | 工作负载与成本分析 | CPU benchmark、DSpark 候选成本曲线 |
+| NVIDIA — Inference Performance Engineer | KV、MoE、推测解码与受控实验 | 工作量、专家负载及输出一致性检查 |
+| Together AI — ML Engineer, Inference | runtime 接入、可靠性与工具 | 训练→checkpoint→引擎、异常路径测试 |
+
+[官方 JD 链接、能力验收表与面试成果清单](docs/career-map.md)（2026-10-21 核对）。按清单整理自己的测量结果，再选择一项 GPU、分布式或服务化任务继续扩展本项目。
 
 ## 从第一次运行到能讲清设计
 
@@ -158,15 +190,7 @@ flowchart LR
 
 ## 能力与资源矩阵
 
-选择学习项目时，先看自己要补哪一层能力。本项目的特点是 **用同一个 NumPy 小模型，把机制、状态、正确性和成本连成一条学习路线**：从数组与执行轨迹出发，再进入生产代码。
-
-| 你接下来的学习目标 | 可优先阅读的项目 |
-|---|---|
-| **推理机制与状态推演；用实验支撑系统设计回答** | **本项目：八个可运行实验、逐轮 trace、独立参考与上游源码地图** |
-| 真实小模型接入与 Transformers 对照 | [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) |
-| V4 模型结构、混合 attention 与压缩 KV | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) |
-| V4 方程、独立参考与 DSpark 调度检查 | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) |
-| GPU 模型执行、分页缓存与 CUDA Graph | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) |
+本项目把 **CPU 训练、权重文本生成、可逐步追踪的请求引擎、DSpark 方程验证与受控性能实验** 放进同一套 NumPy 代码，读者可以沿同一条路径理解模型、状态与成本。
 
 **符号：✓ 已有实现／明确文档；✗ 明确不支持或不满足该列条件；— 本次未核实；✓\* 有条件支持，见脚注。** 不把“未核实”当“不支持”，也不将每个勾视为优势。对其他项目的判断来自 2026-10-21 的固定版本源码／文档核对，未做横向运行或性能测量。[逐项依据](docs/comparison.md)
 
@@ -178,7 +202,7 @@ flowchart LR
 | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
 | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
 | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
-| **本项目** | **✓** | **✓** | **✓** | **✗** |
+| **本项目** | **✓** | **✓** | **✓** | **✓** |
 
 ¹ 默认示例下载 SmolLM2-135M；它另有不下载权重的 tiny 测试。² 指其自训练 native bundle 的文本生成，不表示加载了官方 DSpark checkpoint。
 
@@ -190,9 +214,12 @@ flowchart LR
 | singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
 | hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
 | GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
-| **本项目** | **✗** | **✓\*⁵** | **✗** | **✓\*⁶** | **✓\*⁷** |
+| **本项目** | **✗** | **✓\*⁵** | **✓\*⁸** | **✓\*⁶** | **✓\*⁷** |
 
 ³ tiny 参考结构，不代表官方权重／生产 kernel 对齐。⁴ CPU 方程与调度向量检查，不代表官方权重推测运行时。⁵ 独立控制流的 toy oracle，共享权重与 NumPy；不是第三方推理后端对照。⁶ 显式公共前缀、分支数组复制；无分页、自动匹配或驱逐。⁷ 单进程物理专家副本模拟，无真实多卡通信。
+
+
+⁸ 特征投影/RMSNorm、Markov logits、归一化前 confidence 与逐步温度、双代际预算分配；标量与穷举参考对照。[方程与证据](docs/dspark.md)。
 
 ## 与 DeepInfer 的对应和边界
 
@@ -203,7 +230,7 @@ flowchart LR
 | 优化 kernel、模型 runtime | 真正的 NumPy attention 和 MoE 数值计算 | MLA、稀疏 attention、FP8、融合 kernel、CUDA Graph |
 | EP + EPLB | 逻辑／物理专家映射、热点复制、分发与合并 | 多进程、网络通信、在线权重迁移、多历史步优化 |
 | balanced CP | softmax 跨分片的数值合并原理 | 上游 zigzag/mirror query 划分及真实 collective |
-| DSpark / DFlash 与置信度调度 | greedy 草稿验证、回滚、历史预算控制 | 训练的 draft/confidence head、上游代际协议、随机推测采样 |
+| DSpark / DFlash 与置信度调度 | 特征投影、Markov/confidence 方程、N−2 预算与最新代际分配、独立参考；引擎内 greedy 回滚 | draft decoder 训练、GPU 执行与随机推测采样 |
 | SWA bounded replay | 单层局部依赖的尾部重放证明 | 完整 YoCo、跨层共享 cache、压缩与稀疏状态 |
 | 异步调度 | worker 执行时准备其他就绪请求 | 同一请求提前一轮调度、GPU stream / event |
 | batch invariance | 同一请求独立计算、独立 RNG；改变批次顺序仍输出一致 | 高效批量矩阵乘的跨 batch 位级一致性 kernel |
@@ -215,6 +242,6 @@ flowchart LR
 
 ## 测试与许可
 
-27 项测试覆盖数值等价与引擎状态，包括草稿中的 EOS、极小 token budget、晚到请求、执行失败后清理、跨流水模式的输出一致，以及独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传完整推理轨迹、CPU 基准、专题实验、shape 和验证结果。
+33 项测试覆盖数值等价与引擎状态，包括草稿中的 EOS、极小 token budget、晚到请求、执行失败后清理、跨流水模式的输出一致，全参数梯度、checkpoint 重载、DSpark 方程及独立 oracle。GitHub Actions 配置 Windows/Linux × Python 3.10/3.12，并上传完整推理轨迹、CPU 基准、专题实验、shape、训练 smoke run 和 DSpark 验证结果。
 
 本项目原创教学代码使用 [MIT License](LICENSE)。DeepInfer 的上游代码使用 Apache-2.0；此仓库通过链接提供来源，不包含其源码或权重。参见 [来源与致谢](NOTICE.md)。

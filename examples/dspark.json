@@ -1,0 +1,66 @@
+{
+  "upstream_commit": "774ce244b87cc0eb8d4b94ab9f5de2ab22049f01",
+  "head_cases": 24,
+  "exhaustive_schedule_cases": 80,
+  "max_logit_error": 8.881784197001252e-16,
+  "max_confidence_error": 0.0,
+  "max_projection_error": 7.632783294297951e-16,
+  "example": {
+    "total_q": 4,
+    "seqlens_q": [
+      3,
+      1
+    ],
+    "candidates": [
+      {
+        "total_q": 2,
+        "graph": 2,
+        "expected_tokens": 2.0,
+        "time_ms": 1.0,
+        "tokens_per_ms": 2.0
+      },
+      {
+        "total_q": 3,
+        "graph": 4,
+        "expected_tokens": 2.8,
+        "time_ms": 1.1,
+        "tokens_per_ms": 2.545454545454545
+      },
+      {
+        "total_q": 4,
+        "graph": 4,
+        "expected_tokens": 3.5,
+        "time_ms": 1.1,
+        "tokens_per_ms": 3.1818181818181817
+      },
+      {
+        "total_q": 5,
+        "graph": 8,
+        "expected_tokens": 4.1,
+        "time_ms": 2.5,
+        "tokens_per_ms": 1.64
+      },
+      {
+        "total_q": 6,
+        "graph": 8,
+        "expected_tokens": 4.6,
+        "time_ms": 2.5,
+        "tokens_per_ms": 1.8399999999999999
+      },
+      {
+        "total_q": 7,
+        "graph": 8,
+        "expected_tokens": 4.8,
+        "time_ms": 2.5,
+        "tokens_per_ms": 1.92
+      },
+      {
+        "total_q": 8,
+        "graph": 8,
+        "expected_tokens": 4.8999999999999995,
+        "time_ms": 2.5,
+        "tokens_per_ms": 1.9599999999999997
+      }
+    ]
+  }
+}

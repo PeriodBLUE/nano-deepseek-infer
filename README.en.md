@@ -6,7 +6,7 @@
 
 [![Numerical contracts](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml/badge.svg)](https://github.com/PeriodBLUE/nano-deepseek-infer/actions/workflows/test.yml)
 
-For beginners and aspiring inference engineers · English + Chinese · NumPy only · No GPU or model weights required
+For beginners and aspiring inference engineers · English + Chinese · NumPy only · CPU training and generation
 
 Why does generating one token read historical KV? Why can drafting more tokens make decoding slower? Why can expert replication reduce imbalance while changing the router would change the model?
 
@@ -14,7 +14,6 @@ Start with [`infer.py`](infer.py): **live arrivals → chunked prefill → sched
 
 [Run the project](#run-in-three-minutes) · [System design and interview guide](docs/interview-guide.en.md) · [DeepInfer source map](docs/upstream-map.md) · [Related projects](#capability-and-resource-matrices)
 
-> Independent educational project, not affiliated with DeepSeek. The model is randomly initialized single-layer attention + top-2 MoE; generated text has no learned language meaning. This project studies mechanisms and invariants, does not load DeepSeek weights, and makes no production performance claims.
 
 ## Run in three minutes
 
@@ -37,6 +36,7 @@ source .venv/bin/activate
 
 ```bash
 python -m pip install -e .
+python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64
 python infer.py
 ```
 
@@ -54,7 +54,7 @@ step request phase    input draft accept rollback cache     output
    3 r1      prefill      3     0      0        0 3->6      ''
 ```
 
-Every run checks output equivalence and cache release. Random characters have no learned meaning; the observable result is the state transition.
+Every run checks output equivalence and cache release. The excerpt above uses seeded weights for a compact state trace; the trained path below uses the same engine.
 
 **Change one parameter and test one hypothesis:**
 
@@ -83,15 +83,47 @@ python -m nano_infer generate --prompt "nano" --max-tokens 24
 
 The toy tokenizer accepts lowercase English letters, digits, spaces and a few punctuation characters. It does not support Chinese generation. After installation, `nano-infer` is also available as a command.
 
+## Train weights, then serve text
+
+The repository includes an 87,936-parameter CPU-trained attention + top-2 MoE checkpoint. Load it directly, or train all model parameters yourself using explicit NumPy backprop and Adam:
+
+```bash
+python -m nano_infer generate --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64
+python infer.py --checkpoint checkpoints/tiny-trained.npz --prompt "the model " --max-tokens 64 --json trained-trace.json
+python train.py
+python bench.py --checkpoint checkpoints/tiny-trained.npz --repeats 5 --json trained-benchmark.json
+python infer.py --checkpoint artifacts/tiny-trained.npz --prompt "the model " --max-tokens 64
+python -m nano_infer.dspark --json dspark.json
+```
+
+[`train.py`](train.py) connects next-character loss, causal attention/MoE gradients, clipping, Adam, validation, checkpoint save/reload and generation. [`data/`](data/) contains the original English training and held-out texts. Inspect the [trained inference trace](examples/trained-inference.json) and [trained benchmark](examples/trained-benchmark.json). [Training results](examples/training.json) record configuration, losses, samples and weight/data digests. The [training walkthrough](docs/training.md) explains tensor shapes, routing derivatives and evaluation. The character vocabulary supports lowercase English and selected punctuation.
+
+**DSpark is executable too:** the [equation lab](docs/dspark.md) covers feature projection/RMSNorm, Markov-corrected logits, pre-norm confidence, per-step temperature and two-generation scheduling. Compare 24 head fixtures with scalar equations and 80 scheduler fixtures with an exhaustive oracle. Every candidate budget exposes expected tokens, graph bucket, time and throughput.
+
 ## What you will learn
 
 | Learning advantage | What you can demonstrate | Starting point |
 |---|---|---|
+| **Training to serving** | Derive gradients, train weights, reload a checkpoint and generate through the same cache/scheduler | [`train.py`](train.py) · [Training walkthrough](docs/training.md) |
+| **DSpark from equations to decisions** | Explain pre-norm confidence, Markov recurrence and generation-isolated budget selection | [DSpark lab](docs/dspark.md) · [Reference](nano_infer/dspark_reference.py) |
 | **A complete request lifecycle** | Change arrival times and draft budgets; follow prefill, verification, rollback and completion in one scheduler | [`infer.py`](infer.py) · [`Engine`](nano_infer/engine.py) |
 | **Visible tensors and state** | Read actual prefill/decode shapes, draft acceptance, cache rollback and scheduling traces | `tour` · `demo speculative --trace` · `demo scheduling --trace` |
 | **Testable optimization arguments** | Explain what must remain invariant and detect causal-mask, position and branch-isolation errors | `verify` · [Correctness](docs/interview-guide.en.md#7-prove-that-an-optimization-preserves-results) |
 | **Benefits and costs together** | Compare CPU time, target calls and projection work with identical inputs and outputs | [`bench.py`](bench.py) · [Performance reasoning](docs/interview-guide.en.md#8-answer-performance-questions) |
 | **A path into production source** | Find scheduling, EPLB, DSpark, YoCo and sampling entry points, and explain the gap from each teaching example | [Source map](docs/upstream-map.md) · [Next steps](docs/interview-guide.en.md#9-continue-into-deepinfer-and-model-architecture) |
+
+## What you can bring to an Infra interview
+
+You can explain a trained model from loss to generated text; trace prefill/decode and KV ownership; derive DSpark head and budget equations; and defend an optimization using controlled measurements. Each outcome has code, a runnable command and a saved result.
+
+| Official role reviewed | Practice in this repository | Evidence to explain |
+|---|---|---|
+| Anthropic — Inference Engine | Batching, cached state and determinism | Arrival/rollback/release trace and regression tests |
+| OpenAI — Inference Performance Optimization | Workload and cost analysis | CPU benchmark and DSpark candidate cost curve |
+| NVIDIA — Inference Performance Engineer | KV, MoE, speculation and controlled experiments | Work counters, replica loads and output checks |
+| Together AI — ML Engineer, Inference | Runtime integration, reliability and tooling | Training→checkpoint→engine and failure tests |
+
+[Official JD links, skill checklist and interview deliverables](docs/career-map.en.md) — reviewed 2026-10-21. Follow the checklist to produce your own measurements and choose a GPU, distributed or serving extension within this project.
 
 ## From a first run to a design explanation
 
@@ -158,15 +190,7 @@ Suggested reading order:
 
 ## Capability and resource matrices
 
-Choose a project according to the layer you want to understand. This project's focus is **one NumPy model connecting mechanisms, state, correctness and cost**: start with arrays and execution traces, then move into production source.
-
-| Your next learning goal | Useful starting point |
-|---|---|
-| **Inference mechanisms and state; experimental evidence for design answers** | **This project: eight runnable labs, round-level traces, an independent reference and upstream source map** |
-| Real small-model integration and Transformers comparisons | [Alexander-Qiu/nano-deepinfer](https://github.com/Alexander-Qiu/nano-deepinfer) |
-| V4 architecture, hybrid attention and compressed KV | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) |
-| V4 equations, independent references and DSpark scheduler checks | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) |
-| GPU execution, paged caching and CUDA Graph | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) |
+The project combines **CPU training, checkpoint generation, an inspectable request engine, DSpark equation checks and controlled performance experiments** in one NumPy codebase.
 
 **Legend: ✓ implementation or explicit documentation; ✗ explicitly unsupported or does not meet the column's definition; — not verified in this review; ✓\* conditional, see notes.** Unknown is not unsupported, and a check is not automatically an advantage. Other projects were reviewed at pinned revisions on 2026-10-21; we did not run a cross-project benchmark. [Evidence and revisions](docs/comparison.md)
 
@@ -178,7 +202,7 @@ Choose a project according to the layer you want to understand. This project's f
 | [singzhou/nano-deepseek-v4-inference](https://github.com/singzhou/nano-deepseek-v4-inference) | ✓ | ✗ | ✓ | ✗ |
 | [hebo1221/nano-deepseek-v4](https://github.com/hebo1221/nano-deepseek-v4) | ✓ | ✗ | ✓ | ✓\*² |
 | [GeeeekExplorer/nano-vllm](https://github.com/GeeeekExplorer/nano-vllm) | ✗ | ✗ | ✗ | ✓ |
-| **This project** | **✓** | **✓** | **✓** | **✗** |
+| **This project** | **✓** | **✓** | **✓** | **✓** |
 
 ¹ The default example downloads SmolLM2-135M; separate tiny tests do not need weights. ² Its locally trained native bundle supports generation; this does not imply an official DSpark checkpoint runtime.
 
@@ -190,9 +214,12 @@ Choose a project according to the layer you want to understand. This project's f
 | singzhou/nano-deepseek-v4-inference | ✓\*³ | — | ✗ | — | — |
 | hebo1221/nano-deepseek-v4 | ✓\*³ | ✓ | ✓\*⁴ | — | — |
 | GeeeekExplorer/nano-vllm | — | — | — | ✓ | — |
-| **This project** | **✗** | **✓\*⁵** | **✗** | **✓\*⁶** | **✓\*⁷** |
+| **This project** | **✗** | **✓\*⁵** | **✓\*⁸** | **✓\*⁶** | **✓\*⁷** |
 
 ³ Tiny reference architectures, not official-weight or production-kernel parity. ⁴ CPU equation/scheduler vectors, not official-weight speculative serving. ⁵ Independent control flow for the toy equations, sharing weights and NumPy; not a separate inference backend. ⁶ Explicit shared prefix with copied branch arrays; no paging, automatic matching or eviction. ⁷ Single-process physical-expert simulation without real device communication.
+
+
+⁸ Feature projection/RMSNorm, Markov logits, pre-norm confidence with per-step temperature, and two-generation scheduling; scalar and exhaustive references. [Equations and evidence](docs/dspark.md).
 
 ## DeepInfer mapping and limits
 
@@ -203,7 +230,7 @@ Source review is pinned to DeepInfer [`774ce244b87cc0eb8d4b94ab9f5de2ab22049f01`
 | Kernels and model runtime | Real NumPy attention and MoE computations | MLA, sparse attention, FP8, fused kernels, CUDA Graph |
 | EP + EPLB | Logical/physical mapping, replication, dispatch and combine | Processes, network communication, weight migration, multi-step optimization |
 | Balanced CP | Numerically correct softmax shard merge | Upstream zigzag/mirror query layout and real collectives |
-| DSpark/DFlash and confidence scheduling | Greedy verification, rollback, historical budgeting | Trained heads, upstream temporal protocol and stochastic speculative sampling |
+| DSpark/DFlash and confidence scheduling | Feature projection, Markov/confidence equations, N−2 budget and latest-rate allocation, independent references; greedy engine rollback | Draft decoder training, GPU execution and stochastic speculative sampling |
 | SWA bounded replay | A single-layer local-dependency example | Full YoCo, shared cross-layer caches, compressed/sparse states |
 | Asynchronous scheduling | Prepare other ready requests while a worker runs | Same-request lookahead and GPU streams/events |
 | Batch invariance | Fixed per-request computation and independent RNGs | Efficient batch kernels with cross-shape bitwise invariance |
@@ -215,6 +242,6 @@ Further reading: [system design and interview guide](docs/interview-guide.en.md)
 
 ## Tests and license
 
-27 tests cover numerical equivalence and engine state, including EOS inside drafts, tiny token budgets, late arrivals, failure cleanup, pipeline equivalence and the independent oracle. GitHub Actions runs Windows/Linux × Python 3.10/3.12 and uploads inference traces, CPU benchmarks, labs, shapes and verification results.
+33 tests cover numerical equivalence and engine state, including EOS inside drafts, tiny token budgets, late arrivals, failure cleanup, pipeline equivalence analytic gradients, checkpoint round trips, DSpark equations and the independent oracle. GitHub Actions runs Windows/Linux × Python 3.10/3.12 and uploads inference traces, CPU benchmarks, labs, shapes, training smoke runs and DSpark verification results.
 
 Original code is [MIT licensed](LICENSE). Upstream DeepInfer is Apache-2.0; its code and weights are not vendored here. See [attribution](NOTICE.md).

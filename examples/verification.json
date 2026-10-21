@@ -134,13 +134,16 @@
   ],
   "source_sha256": {
     "__init__.py": "43c24804701485e45a4f36871d2c43f766b279108c021d5d4b8a108c85cffb55",
-    "__main__.py": "2f08e168c1a94cd33b2c17e11878bff95144a7e8d7aff0a06bd4166a7e81b164",
+    "__main__.py": "4bf21b8105f9e9f0d49f2a251abf6e96be2d489e95cfde1bef64a5d9be1edcc9",
     "decoding.py": "6ff5eca12f58581072dcd26d9e4aa5b8c90a3d4961f6a419b181d7f90d627d2e",
+    "dspark.py": "12e66384ce2b6340e280b4f84a96580c7c4c74172ddf5608deeabb967c27bc1b",
+    "dspark_reference.py": "d5f5e1c9a9bf5044860f803afad8f1d58bc5c1a3138a76fad85064b71787fb79",
     "engine.py": "8a90e9c8349a15a854605c30ce245099957265f5b5071828d027e3a218aff9f7",
     "labs.py": "deefbcea67257e5df052559f7a86b720d44c8244b94059d52b4fee0aba797217",
-    "model.py": "d37831cf3fdc8b42b09e6e7ad5d84be214e727d08b9457e01464d369c9483ad0",
+    "model.py": "3f3ee41d6961c6321727ce3097a0045f4354d479dffea2632a6c828b824a8834",
     "parallel.py": "d2423343470582677ebef1192b146af4ae7b487e87512baf7b22f94df57709a1",
     "prefix.py": "cc8c85d56c96fc01cad109ccab8b8988e570f7b04cc3df8a7f5c305bcaed6311",
+    "training.py": "0116a0f552a22c9fff5855ce51cf35ad82102b7a8de470a2dc317e890797d357",
     "verification.py": "8d9ef3080207d4eccbfc4fa0ab08c8cb4da12503b084583ee19c892499bc4ffe"
   },
   "scope": "toy equations, shared weights, independent control flow; no official model parity"
